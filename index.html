@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>株価分析 スライド生成ツール</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+/* ===== APP UI ===== */
+:root{--bg:#0f172a;--panel:#1e293b;--border:#334155;--text:#e2e8f0;--muted:#94a3b8;--accent:#3b82f6;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Helvetica Neue',Arial,'Hiragino Sans',sans-serif;height:100vh;overflow:hidden;display:flex;gap:14px;padding:14px;}
+h1{font-size:17px;font-weight:700;margin-bottom:3px;}
+.sub{color:var(--muted);font-size:11px;margin-bottom:10px;}
+.ctrl{width:300px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;height:100%;}
+.prev-area{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;overflow-y:auto;height:100%;}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:12px;display:flex;flex-direction:column;gap:7px;}
+.card h2{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);padding-bottom:5px;margin-bottom:1px;}
+.row{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
+input[type=text],textarea{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 9px;border-radius:4px;font-size:12px;font-family:inherit;}
+input[type=text]{flex:1;}
+textarea{width:100%;resize:vertical;line-height:1.5;font-size:11px;}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:5px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.btn:hover{opacity:.85;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-sm{background:#1e3a5f;border:1px solid var(--border);color:var(--text);border-radius:4px;padding:5px 9px;font-size:11px;cursor:pointer;white-space:nowrap;}
+.btn-sm:hover{background:#2a4a7a;}
+.btn-danger{background:#3b1f1f;border:1px solid #7f1d1d;color:#fca5a5;border-radius:4px;padding:5px 9px;font-size:11px;cursor:pointer;}
+.btn-full{width:100%;padding:10px;font-size:13px;}
+.radio-group{display:flex;gap:8px;}
+.radio-group label{font-size:12px;cursor:pointer;display:flex;align-items:center;gap:3px;}
+.prev-area{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
+.prev-wrap{display:flex;flex-wrap:wrap;gap:6px;}
+.prev-slide{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:4px;cursor:pointer;}
+.prev-slide::after{content:'⬇ DL';position:absolute;bottom:0;left:0;right:0;background:rgba(59,130,246,.85);color:#fff;font-size:10px;text-align:center;padding:2px 0;opacity:0;transition:opacity .15s;}
+.prev-slide:hover{border-color:var(--accent);}
+.prev-slide:hover::after{opacity:1;}
+#status{font-size:11px;color:var(--muted);min-height:16px;}
+.fmt{background:#0a1628;border:1px solid var(--border);border-radius:4px;padding:8px;font-size:10px;color:var(--muted);font-family:monospace;white-space:pre;overflow-x:auto;max-height:180px;overflow-y:auto;}
+details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:3px;}
+#mob-prev{margin-top:6px;display:none;background:var(--panel);padding:8px;border-radius:7px;border:1px solid var(--border);}
+#mob-img{max-width:100%;border-radius:3px;}
+
+/* ===== SLIDE BASE (1280×720, light theme) ===== */
+.slide{
+  width:1280px;height:720px;overflow:hidden;position:relative;
+  background:#f8fafc;
+  font-family:'Noto Sans JP','Hiragino Sans','Yu Gothic','Meiryo',Arial,sans-serif;
+  color:#0f172a;
+}
+.sl-bar{position:absolute;top:0;left:0;right:0;height:6px;background:linear-gradient(90deg,#1d4ed8,#0284c7);}
+.sl-sig{position:absolute;bottom:10px;right:28px;font-size:13px;color:#cbd5e1;font-weight:700;letter-spacing:.04em;}
+.sl-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;}
+
+/* ===== SLIDE 1: 現状の整理 ===== */
+.s1-wrap{padding:24px 64px 22px;display:flex;flex-direction:column;gap:8px;height:720px;box-sizing:border-box;justify-content:center;}
+/* head: name + code + desc all inline */
+.s1-head{padding-bottom:8px;border-bottom:1px solid #e2e8f0;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.s1-name{font-size:22px;font-weight:900;color:#0f172a;line-height:1.2;}
+.s1-code{font-size:13px;color:#94a3b8;font-weight:400;margin-left:6px;}
+.s1-desc{font-size:12px;color:#64748b;margin-left:8px;}
+/* upper row: price-card | metrics-card | chart */
+.s1-upper{display:flex;gap:12px;flex-shrink:0;height:148px;}
+.s1-price-card{width:195px;flex-shrink:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;display:flex;flex-direction:column;justify-content:center;}
+.s1-price{font-size:40px;font-weight:900;color:#0f172a;line-height:1;}
+.s1-change{font-size:17px;font-weight:700;margin-top:6px;}
+.s1-metrics-card{width:285px;flex-shrink:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:4px 12px;display:flex;flex-direction:column;justify-content:space-evenly;overflow:hidden;}
+.s1-metric-row{display:flex;justify-content:space-between;align-items:baseline;padding:1px 0;border-bottom:1px solid #f8fafc;}
+.s1-metric-row:last-child{border-bottom:none;}
+.s1-ml{font-size:12px;color:#94a3b8;white-space:nowrap;}
+.s1-mv{font-size:16px;font-weight:700;color:#0f172a;white-space:nowrap;}
+.s1-chart-card{flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;position:relative;}
+.s1-chart-lbl{position:absolute;top:6px;left:10px;font-size:11px;color:#94a3b8;z-index:1;}
+.s1-chart-canvas{display:block;width:100%;height:100%;}
+/* lower: 3 rows stacked vertically — 均等 */
+.s1-lower{display:flex;flex-direction:column;gap:7px;}
+.s1-factors-card{background:#eff6ff;border:1px solid #bfdbfe;border-left:4px solid #2563eb;border-radius:8px;padding:10px 16px 8px;min-height:100px;overflow:hidden;display:flex;flex-direction:column;}
+.s1-ftitle{font-size:17px;font-weight:700;color:#1d4ed8;margin-bottom:6px;}
+.s1-factor{font-size:17px;color:#1e3a5f;line-height:1.4;display:flex;gap:8px;margin-bottom:4px;}
+.s1-factor:last-child{margin-bottom:0;}
+.s1-fbullet{color:#2563eb;font-size:10px;flex-shrink:0;margin-top:4px;}
+.s1-s-card{background:#f0fdf4;border:1px solid #bbf7d0;border-left:4px solid #059669;border-radius:8px;padding:10px 16px 8px;min-height:80px;overflow:hidden;display:flex;flex-direction:column;}
+.s1-w-card{background:#fef2f2;border:1px solid #fecaca;border-left:4px solid #dc2626;border-radius:8px;padding:10px 16px 8px;min-height:80px;overflow:hidden;display:flex;flex-direction:column;}
+.s1-sw-title{font-size:17px;font-weight:700;margin-bottom:6px;}
+.s1-s-card .s1-sw-title{color:#047857;}
+.s1-w-card .s1-sw-title{color:#b91c1c;}
+.s1-sw-item{font-size:17px;color:#334155;line-height:1.35;display:flex;gap:6px;margin-bottom:3px;}
+.s1-sw-item:last-child{margin-bottom:0;}
+.s1-sw-bullet{flex-shrink:0;margin-top:2px;font-size:10px;}
+.s1-s-card .s1-sw-bullet{color:#059669;}
+.s1-w-card .s1-sw-bullet{color:#dc2626;}
+
+/* ===== SLIDE 2: 底値/天井シナリオ ===== */
+.s2-wrap{padding:44px 72px 40px;display:flex;flex-direction:column;height:720px;box-sizing:border-box;}
+.s2-title{font-size:36px;font-weight:900;color:#0f172a;margin-bottom:18px;flex-shrink:0;}
+/* 上段: 3つの参照指標を横並び */
+.s2-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:22px;padding-bottom:22px;border-bottom:2px solid #e2e8f0;flex-shrink:0;}
+.s2-mb-num{font-size:60px;font-weight:900;color:#0f172a;line-height:1;margin-bottom:6px;}
+.s2-mb-lbl{font-size:19px;font-weight:700;color:#0f172a;margin-bottom:4px;}
+.s2-mb-sub{font-size:15px;color:#64748b;line-height:1.5;}
+/* 下段: 3シナリオを縦に並べる */
+.s2-scen-rows{display:flex;flex-direction:column;gap:9px;flex:1;}
+.s2-scen-row{display:grid;grid-template-columns:180px 230px 140px 1fr;gap:20px;align-items:center;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 20px;border-left:5px solid #94a3b8;flex:1;}
+.s2-scen-row.bear{border-left-color:#dc2626;background:#fef2f2;border-color:#fecaca;}
+.s2-scen-row.base{border-left-color:#64748b;background:#f8fafc;border-color:#e2e8f0;}
+.s2-scen-row.bull{border-left-color:#2563eb;background:#eff6ff;border-color:#bfdbfe;}
+.s2-sr-name{font-size:20px;font-weight:700;}
+.s2-scen-row.bear .s2-sr-name{color:#dc2626;}
+.s2-scen-row.base .s2-sr-name{color:#64748b;}
+.s2-scen-row.bull .s2-sr-name{color:#2563eb;}
+.s2-sr-range{font-size:28px;font-weight:900;color:#0f172a;line-height:1.1;}
+.s2-sr-pct{font-size:18px;font-weight:700;color:#475569;}
+.s2-sr-cond{font-size:16px;color:#475569;line-height:1.65;}
+
+/* ===== SLIDE 3: 12か月後シナリオ ===== */
+.s3-wrap{padding:44px 72px 40px;display:flex;flex-direction:column;height:720px;box-sizing:border-box;justify-content:center;}
+.s3-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:14px;flex-shrink:0;}
+.s3-title{font-size:36px;font-weight:900;color:#0f172a;flex-shrink:0;}
+/* コンセンサス：タイトル右横に小さく配置 */
+.s3-cons{padding:8px 14px;background:#fffbeb;border:1px solid #fde68a;border-left:3px solid #d97706;border-radius:6px;display:flex;flex-direction:column;gap:4px;align-self:center;min-width:220px;}
+.s3-cons-label{font-size:12px;color:#92400e;font-weight:600;white-space:nowrap;}
+.s3-cons-val{font-size:14px;font-weight:700;color:#78350f;}
+.s3-bar-section{margin-bottom:16px;flex-shrink:0;}
+.s3-bar-labels-top{display:flex;justify-content:space-between;margin-bottom:5px;font-size:14px;}
+.s3-bar-outer{position:relative;height:60px;}
+.s3-bar-track{position:absolute;top:20px;bottom:20px;left:0;right:0;background:#f1f5f9;border-radius:4px;overflow:visible;}
+.s3-zone{position:absolute;top:0;bottom:0;border-radius:4px;}
+.s3-zone.bear{background:rgba(220,38,38,.2);}
+.s3-zone.base{background:rgba(100,116,139,.2);}
+.s3-zone.bull{background:rgba(37,99,235,.2);}
+/* 現在値マーカー（下にラベル） */
+.s3-marker{position:absolute;top:-16px;bottom:-16px;display:flex;flex-direction:column;align-items:center;transform:translateX(-50%);}
+.s3-marker-line{width:2px;flex:1;background:#0f172a;}
+.s3-marker-dot{width:10px;height:10px;border-radius:50%;background:#0f172a;border:2px solid #fff;flex-shrink:0;}
+.s3-marker-lbl{position:absolute;bottom:-26px;font-size:13px;font-weight:700;color:#0f172a;white-space:nowrap;transform:translateX(-50%);}
+/* コンセンサスマーカー（上にラベル） */
+.s3-cmarker{position:absolute;top:-16px;bottom:-16px;display:flex;flex-direction:column;align-items:center;transform:translateX(-50%);}
+.s3-cmarker-lbl{position:absolute;top:-26px;font-size:13px;font-weight:700;color:#d97706;white-space:nowrap;transform:translateX(-50%);}
+.s3-cmarker-dot{width:10px;height:10px;border-radius:50%;background:#d97706;border:2px solid #fff;flex-shrink:0;}
+.s3-cmarker-line{width:2px;flex:1;background:#d97706;}
+.s3-bar-prices{display:flex;justify-content:space-between;margin-top:36px;font-size:13px;color:#94a3b8;}
+.s3-table{width:100%;border-collapse:collapse;}
+.s3-table th{font-size:14px;color:#94a3b8;font-weight:600;padding:9px 16px;text-align:left;border-bottom:2px solid #f1f5f9;background:#f8fafc;}
+.s3-table td{padding:13px 16px;border-bottom:1px solid #f1f5f9;font-size:17px;color:#334155;vertical-align:top;}
+.s3-table tr:last-child td{border-bottom:none;}
+.s3-table tr.bear-row td{background:#fef7f7;}
+.s3-table tr.base-row td{background:#f8fafc;}
+.s3-table tr.bull-row td{background:#f0f7ff;}
+.s3-sc{font-weight:700;font-size:17px;}
+.s3-table tr.bear-row .s3-sc{color:#dc2626;}
+.s3-table tr.base-row .s3-sc{color:#64748b;}
+.s3-table tr.bull-row .s3-sc{color:#2563eb;}
+.s3-pc{font-size:24px;font-weight:900;color:#0f172a;}
+.s3-pct{color:#475569;font-weight:600;font-size:17px;}
+.s3-cd{color:#64748b;font-size:16px;line-height:1.6;}
+
+/* ===== SLIDE 4: 転換点のモノサシ ===== */
+.s4-wrap{padding:44px 72px;display:flex;flex-direction:column;height:720px;box-sizing:border-box;justify-content:center;gap:24px;}
+.s4-title{font-size:36px;font-weight:900;color:#0f172a;flex-shrink:0;}
+.s4-items{display:flex;flex-direction:column;gap:10px;}
+.s4-item{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 18px;border-left:3px solid #2563eb;}
+.s4-item-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+.s4-iname{font-size:20px;font-weight:700;color:#1e293b;}
+.s4-ivals{font-size:17px;color:#475569;}
+.s4-icur{color:#0f172a;font-weight:700;}
+.s4-itgt{color:#2563eb;font-weight:700;}
+.s4-gauge-bg{height:9px;background:#f1f5f9;border-radius:4px;overflow:hidden;}
+.s4-gauge-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#2563eb,#0284c7);}
+.s4-milestone{display:flex;align-items:center;}
+.s4-ms-now{font-size:16px;font-weight:700;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:4px 12px;white-space:nowrap;}
+.s4-ms-line{flex:1;height:2px;background:#e2e8f0;margin:0 12px;}
+.s4-ms-tgt{font-size:16px;font-weight:700;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:4px 12px;white-space:nowrap;}
+.s4-ms-label{font-size:14px;color:#475569;margin-left:10px;}
+.s4-inote{font-size:15px;color:#475569;margin-top:6px;line-height:1.55;}
+
+/* ===== SLIDE 5: リスク ===== */
+.s5-wrap{padding:44px 72px;display:flex;flex-direction:column;height:720px;box-sizing:border-box;justify-content:center;gap:20px;}
+.s5-title{font-size:36px;font-weight:900;color:#0f172a;flex-shrink:0;}
+.s5-sub{font-size:16px;color:#64748b;margin-bottom:24px;flex-shrink:0;}
+.s5-risks{display:flex;flex-direction:column;gap:22px;}
+/* 小見出しを囲いの外に出す構造 — 高さは件数に応じて自動 */
+.s5-rsection{display:flex;flex-direction:column;gap:8px;}
+.s5-rtitle{font-size:24px;font-weight:700;}
+.s5-rtitle.r1-t{color:#dc2626;}
+.s5-rtitle.r2-t{color:#d97706;}
+.s5-rbody{border-radius:10px;padding:18px 26px;}
+.s5-rbody.r1{background:#fff5f5;border:1px solid #fecaca;border-left:5px solid #dc2626;}
+.s5-rbody.r2{background:#fffbeb;border:1px solid #fde68a;border-left:5px solid #d97706;}
+.s5-rlist{list-style:none;display:flex;flex-direction:column;gap:10px;}
+.s5-rlist li{font-size:18px;color:#475569;padding-left:18px;position:relative;line-height:1.65;}
+.s5-rlist li::before{content:'・';position:absolute;left:0;color:#94a3b8;}
+</style>
+</head>
+<body>
+
+<div class="ctrl">
+  <h1>📊 株価分析 スライド生成</h1>
+  <p class="sub">プロンプト生成 → ChatGPT → ファクトチェック → NotebookLM → スライド生成</p>
+
+  <div class="card">
+    <h2>1. 基本情報</h2>
+    <div class="row">
+      <div class="radio-group">
+        <label style="font-size:11px;color:var(--muted);">市場:</label>
+        <label><input type="radio" name="mkt" value="jp" checked> JP</label>
+        <label><input type="radio" name="mkt" value="us"> US</label>
+      </div>
+    </div>
+    <div class="row">
+      <input type="text" id="inp-ticker" placeholder="コード (例: 6966)" style="max-width:100px;">
+      <input type="text" id="inp-name" placeholder="銘柄名 (例: 三井ハイテック)">
+    </div>
+    <div class="row">
+      <div class="radio-group">
+        <label style="font-size:11px;color:var(--muted);">方向:</label>
+        <label><input type="radio" name="dir" value="down" checked> 下落</label>
+        <label><input type="radio" name="dir" value="up"> 上昇</label>
+      </div>
+    </div>
+    <input type="text" id="inp-period" placeholder="期間 (例: 2022年3月の最高値から71%)">
+    <div class="row">
+      <button class="btn-sm" onclick="openKabutan()">🔍 株探</button>
+      <button class="btn-sm" onclick="openIR()">🔍 IR検索</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. ChatGPT 分析プロンプト生成</h2>
+    <button class="btn btn-full" onclick="copyAnalysis(this)">💬 ① 分析プロンプトをコピー</button>
+    <div style="font-size:10px;color:var(--muted);">ChatGPTで実行 → 出力を下に貼付</div>
+    <textarea id="ta-report" placeholder="ChatGPTのレポートをここに貼り付け" style="min-height:90px;"></textarea>
+    <div class="row">
+      <button class="btn-sm" onclick="copyFactCheck(this)" style="flex:1;">✅ ② ファクトチェック</button>
+      <button class="btn-sm" onclick="copyCorrection(this)" style="flex:1;">🔧 ③ 修正指示</button>
+    </div>
+    <div style="font-size:10px;color:var(--muted);">②③を誤りがなくなるまで繰り返す</div>
+  </div>
+
+  <div class="card">
+    <h2>3. NotebookLM プロンプト生成</h2>
+    <div style="font-size:10px;color:var(--muted);">① まずNotebookLMのソースにURLを追加:</div>
+    <div class="row" style="margin-bottom:6px;">
+      <button class="btn-sm" onclick="copyKabutanUrl(this)">📋 株探URLをコピー</button>
+    </div>
+    <div style="font-size:10px;color:var(--muted);">② 確認済みレポートを読み込ませ、プロンプトを実行:</div>
+    <button class="btn btn-full" onclick="copyNBPrompt(this)">📓 NotebookLMプロンプトをコピー</button>
+    <details>
+      <summary>入力フォーマットを確認する</summary>
+      <pre class="fmt">[銘柄情報]
+三井ハイテック|6966|597|2022年3月 最高値比|▼-71%
+精密金型・モーターコア・リードフレームの一貫生産メーカー
+PER:15.6倍|PBR:0.96倍|配当:3.18%|時価総額:1,178億円|52週:513〜958円
+
+[変動要因]
+欧州BEV鈍化で減損39億円＋欧州事業損失26億円計上
+中計を大幅下方修正（営業利益235億→150億）
+27/1期も営業減益予想、海外利益率1.8%に低迷
+
+[強み]
+HEV向け83%のモーターコア、純BEV依存ではない
+超精密加工技術と金型〜製品の一貫生産
+17拠点グローバル体制、モーターコアトップシェア
+
+[弱み]
+海外モーターコア利益率1.8%（国内9.4%と大差）
+ROE2.8%・ROIC4.4%と資本効率が低水準
+中計を1年後に大幅下方修正し予測精度に傷
+
+[チャート]
+2025-04-04,1850,1920,1830,1880,520000
+...（週足×約52本）
+
+[コンセンサス]
+アナリスト目標株価|820円
+
+[短期予測]
+方向:下落
+P0:597
+52週安値:513
+指標:0.96倍|実績PBR|BPS 619円、PBR1倍割れ継続中
+弱気|430〜500|▼-28%〜▼-16%|PBR0.7〜0.8倍|追加下方修正+海外採算停滞
+ベース|500〜560|▼-16%〜▼-6%|PBR0.8〜0.9倍|大幅失望なし
+強気|560〜597|▼-6%〜±0%|PBR0.9〜1.0倍|27/1期が利益の底と浸透
+
+[12か月後]
+弱気|480〜620|▼-20%〜+4%|ROICが5%未満継続
+ベース|700〜850|▲+17%〜+42%|海外採算改善の方向感
+強気|900〜1,050|▲+51%〜+76%|海外採算改善が明確化
+
+[転換点]
+海外モーターコア利益率|1.8%|3〜4%|2Q以上継続で底打ちシグナル
+ROIC|4.4%|5%超|安定確保でPBR1倍突破の土台
+FCF|マイナス|黒字化|営業CFが投資CFを上回る状態
+販売数量伸長率|+1%|+5%以上|稼働率改善の証拠
+リードフレーム利益率|6.9%|7.5〜8.0%|安定キャッシュ源として機能
+
+[リスク]
+下振れ|PBR1倍近辺でも海外採算未改善ならPBR0.8倍まで割引。52週安値¥513再テスト、¥430〜500帯は「待ち時間の長さ」で到達しうる
+修正|28/1期を底とする前提崩れる条件：中東情勢・原油高、関税リスク、日銀追加引き締め、レガシー半導体回復遅延 → ベース・強気シナリオ見直し必要</pre>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>4. スライドデータ入力</h2>
+    <div class="row">
+      <button class="btn-sm" onclick="pasteClip()">📋 貼り付け</button>
+      <button class="btn-danger" onclick="clearData()">✕ クリア</button>
+    </div>
+    <textarea id="ta-data" placeholder="NotebookLMの出力をここに貼り付け" style="min-height:120px;" oninput="debouncedPrev()"></textarea>
+  </div>
+
+  <button class="btn btn-full" id="dl-btn" onclick="downloadAll()">⬇ 全スライドをZIPでダウンロード</button>
+  <div id="status"></div>
+  <div id="mob-prev">
+    <p style="font-size:10px;color:#ef4444;font-weight:bold;margin-bottom:5px;">保存ダイアログが出ない場合は画像を長押しして保存</p>
+    <img id="mob-img" src="" alt="">
+  </div>
+</div>
+
+<div class="prev-area">
+  <div style="font-size:11px;color:var(--muted);">プレビュー（クリックで個別ダウンロード）</div>
+  <div class="prev-wrap" id="prev-area"></div>
+</div>
+
+<div id="render-target" style="position:fixed;left:-9999px;top:0;pointer-events:none;"></div>
+
+<script>
+// ============================================================
+// CONSTANTS & HELPERS
+// ============================================================
+const SLIDE_W=1280,SLIDE_H=720;
+const getMkt=()=>document.querySelector('input[name=mkt]:checked')?.value||'jp';
+const getDir=()=>document.querySelector('input[name=dir]:checked')?.value||'down';
+const getTicker=()=>document.getElementById('inp-ticker').value.trim();
+const getName=()=>document.getElementById('inp-name').value.trim();
+const getPeriod=()=>document.getElementById('inp-period').value.trim();
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// 4桁以上の整数部にカンマを挿入
+function addComma(s){return String(s||'').replace(/\d+/g,m=>m.length<4?m:parseInt(m).toLocaleString('ja-JP'));}
+// ▼-28% → -28%、▲+17% → +17%（重複記号除去）
+function cleanPct(s){return String(s||'').replace(/[▼▲]/g,'');}
+// 末尾の「。」を除去
+function trimDot(s){return String(s||'').replace(/[。\s]+$/,'').trim();}
+// 通貨記号を除去（円・$・¥）
+function stripCur(s){return String(s||'').replace(/[円$¥]/g,'').trim();}
+// 証券コードから通貨単位を判定（英字あり → US/なし → JP）
+function isUSCode(code){return /[a-zA-Z]/.test(String(code||''));}
+// 価格値を整形（既存通貨記号除去 + カンマ + 適切な単位追加）
+function fmtPrice(val,code){const n=addComma(stripCur(val));return isUSCode(code)?'$'+n:n+'円';}
+
+function setStatus(msg,dur=0){
+  document.getElementById('status').textContent=msg;
+  if(dur) setTimeout(()=>document.getElementById('status').textContent='',dur);
+}
+
+// ============================================================
+// PROMPT TEMPLATES
+// ============================================================
+const ANALYSIS_CORE=`# 命令書
+
+## あなたの役割
+あなたは、分析対象の企業ごとに最も合理的で重要な分析項目や指標を自ら選定できる、トップクラスの株式アナリストです。短期的な株価の動きを追うだけでなく、その背景にある企業の永続的な競争力や経営の質といった本質的な価値を見抜くことが仕事です。
+
+## 私の目的
+株価が [PERIOD][TREND] している [NAME] について、12ヶ月（1年）程度の時間軸を基本とし、投資家が「[GOAL]」を自己判断するための、客観的で深い洞察に満ちた分析レポートを作成すること。
+
+## 分析における重要な視点
+* マクロ経済環境: 現在の金利、景気動向、金融政策などがこの企業にどう影響するか。
+* 業界トレンド: 当該銘柄が属する業界全体の成長性、技術革新、規制変更などの追い風・向かい風。
+* 競合他社の動向: 競合他社と比較した業績・株価パフォーマンスの位置づけ。
+
+## 「3つの必須回答項目」
+1. なぜ[TREND]しているのか？
+   * 株価変動を牽引している要因を特定し、その背景にある「企業の永続的な強さ・弱さ（Moat）」と「経営陣の能力・信頼性」も評価に含めてください。
+
+2. どこまで[TREND]する可能性があるのか？
+   * 「[MID_LABEL]」とは[MID_DEF]を指します。P0（本レポート1章で提示した現在株価）を基準に弱気/ベース/強気の3シナリオで提示してください。
+   * 各シナリオは「目標株価レンジ」と「P0からの変化率（%）」を必ず併記してください。[MID_CONSTRAINT]
+   * この[MID_LABEL]とは別に「12か月後シナリオ」を別見出し・別シナリオで必ず提示してください。両者を同じ表や段落に混在させてはいけません。
+
+3. トレンド転換点（[TURNING_POINT]）を判断する「株価以外のモノサシ」は何か？
+   * この銘柄に特有の定量的な指標を複数特定し、「どのくらいの数値」になったら転換の可能性が高まるか、具体的な目安を示してください。
+
+## レポートの構成
+### [NAME]株価分析レポート：[ANALYSIS_TITLE]
+
+#### 1. 企業の基本情報
+（現在株価、時価総額、PER、PBR、配当利回り、52週レンジ等を表や箇条書きで提示）
+
+#### 2. 現状分析：[TREND]の要因と企業の本質的価値
+（変動要因・Moat・弱さ・経営陣評価・マクロ・業界・競合を詳細に記述）
+
+#### 3. 将来予測：市場コンセンサス、[MID_LABEL]、12か月後シナリオ、転換点のモノサシ
+（以下を必ず別見出し・別段落で記述）
+1. 市場コンセンサス（アナリスト目標株価など）
+2. [MID_LABEL]（[MID_DEF]）弱気/ベース/強気の3シナリオ
+3. 12か月後シナリオ 弱気/ベース/強気（2と3は絶対に混在させない）
+4. 転換点を判断する「株価以外のモノサシ」
+
+#### 4. シナリオとリスク
+（「[RISK_SCENARIO]」と「12か月後シナリオ自体が下方修正されるリスク」を分けて記述）
+・レポートに出典番号は記載しないでください。`;
+
+const MODES={
+  down:{
+    '[ANALYSIS_TITLE]':'下落の要因と底値のサイン',
+    '[TREND]':'下落',
+    '[GOAL]':'買いポイントの特定',
+    '[MID_DEF]':'今後3〜9か月程度の間に一時的に付けうる中間安値レンジ',
+    '[MID_LABEL]':'下値余地',
+    '[MID_CONSTRAINT]':'目標株価レンジは必ずP0以下（P0より高い数値は禁止）',
+    '[TURNING_POINT]':'底値圏（下落トレンドの終焉と反転）',
+    '[RISK_SCENARIO]':'底打ちと判断して買ったが、さらに下落が続くリスク',
+  },
+  up:{
+    '[ANALYSIS_TITLE]':'上昇の持続性と天井のサイン',
+    '[TREND]':'上昇',
+    '[GOAL]':'利確・損切りポイントの特定',
+    '[MID_DEF]':'今後3〜9か月程度の間に一時的に付けうる中間高値レンジ',
+    '[MID_LABEL]':'上値余地',
+    '[MID_CONSTRAINT]':'目標株価レンジは必ずP0以上（P0より低い数値は禁止）',
+    '[TURNING_POINT]':'天井圏（上昇トレンドの終焉）',
+    '[RISK_SCENARIO]':'上昇トレンドが崩れ、下落に転じるリスク',
+  }
+};
+
+const NB_PROMPT=`あなたはプロの証券アナリストであり、データ整形のエキスパートです。
+読み込んだソース（株価分析レポート）を分析し、下記の【出力フォーマット】に厳密に従ってテキストを出力してください。
+
+## 重要なルール
+1. 金額は「兆・億・万円」に変換してください。
+2. 変化率は「▲+XX.X%」または「▼-XX.X%」の形式で記載（±0%に近い場合は「±0%」）。
+3. [チャート]は週足データで出力。直近約1年分（52本程度）の「YYYY-MM-DD,始値,高値,安値,終値,売買高（株数）」を1行1本。
+4. コードブロック（\`\`\`）は不要。テキストのみ出力。
+5. [転換点]の指標数はレポートの内容に応じて可変（3〜7個程度）。
+6. [短期予測]の「方向」は、下落分析なら「下落」、上昇分析なら「上昇」。
+7. 下落分析では「52週安値」、上昇分析では「52週高値」を記載。
+8. [リスク]の1行目は下落分析なら「下振れ」、上昇分析なら「崩壊」で始める。2行目は必ず「修正」で始める。本文は「・」区切りの箇条書き形式で記載すること（例：「高金利継続で設備投資減退・海外競合の低価格攻勢で受注単価下落・関税コスト増加によるマージン圧縮」）。
+9. [強み][弱み]はレポート2章の「企業の永続的な強さ・弱さ」から抽出し、各2〜4行で記載。
+10. [コンセンサス]にはアナリスト目標株価のみ1行で記載（例：「アナリスト目標株価|820円」）。目標株価データがない場合はセクション自体を省略。業績コンセンサス（売上・営業利益等）は不要。
+11. [短期予測]・[12か月後]の各シナリオの前提条件（最終フィールド）は、1〜2文の詳細な説明を記載してください。投資家がそのシナリオが成立する理由・根拠を理解できる内容にしてください（例：「海外モーターコア事業の採算が一向に改善せず、27/1期に追加下方修正が発生するケース。PBR0.7〜0.8倍への割引が継続する。」）。
+12. 数値は1,000以上の場合は3桁カンマ区切りで記載（例：1,178億円、10,386,000）。ただし株価・価格レンジは通貨記号なしの数値のみ（例：597、430〜500）。証券コードが英字を含む場合は米国株なので、スライドツールが自動でドル表記に変換します。
+13. 各セクションのヘッダー（[銘柄情報]、[変動要因]等）は必ずすべて出力すること。
+
+---
+## 【出力フォーマット】
+※ [銘柄情報]の1行目には「銘柄名」「証券コード」などのカラム名を書かず、必ず具体的な値のみ3行を出力すること。
+
+[銘柄情報]
+三井ハイテック|6966|597|2022年3月 最高値比|▼-71%
+超精密金型・モーターコア・リードフレームの一貫生産メーカー
+PER:15.6倍|PBR:0.96倍|配当:3.18%|時価総額:1,178億円|52週:513〜958円
+
+※ 株価は数値のみ（円・$などの通貨記号は不要）。スライドツールが証券コードから自動変換します。
+
+[変動要因]
+要因1（1行で簡潔に）
+要因2
+要因3
+
+[強み]
+強みの説明1
+強みの説明2
+強みの説明3
+
+[弱み]
+弱みの説明1
+弱みの説明2
+弱みの説明3
+
+[チャート]
+YYYY-MM-DD,始値,高値,安値,終値,売買高
+（約52行）
+
+[コンセンサス]
+アナリスト目標株価|820円
+
+[短期予測]
+方向:下落
+P0:現在株価の数値
+52週安値:数値
+指標:値|ラベル|補足説明（省略可）
+弱気|価格レンジ|変化率|バリュエーション根拠|前提条件
+ベース|価格レンジ|変化率|バリュエーション根拠|前提条件
+強気|価格レンジ|変化率|バリュエーション根拠|前提条件
+
+[12か月後]
+弱気|価格レンジ|変化率|前提条件
+ベース|価格レンジ|変化率|前提条件
+強気|価格レンジ|変化率|前提条件
+
+[転換点]
+指標名|現在値|目安値|補足説明
+（3〜7個）
+
+[リスク]
+下振れ|リスク説明テキスト
+修正|シナリオ下方修正リスクの説明テキスト`;
+
+// ============================================================
+// COPY HELPERS
+// ============================================================
+function copyText(text,btn){
+  navigator.clipboard.writeText(text).catch(()=>{
+    const t=document.createElement('textarea');
+    t.value=text;t.style.cssText='position:fixed;left:-9999px;opacity:0;';
+    document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);
+  });
+  const o=btn.textContent;btn.textContent='✔ コピーしました！';
+  setTimeout(()=>btn.textContent=o,2000);
+}
+
+function buildAnalysisText(){
+  const dir=getDir(),mode=MODES[dir];
+  const name=getName()||'【銘柄名を入力】';
+  const period=getPeriod()||'【期間を入力】';
+  let p=ANALYSIS_CORE.replaceAll('[NAME]',name).replaceAll('[PERIOD]',period);
+  for(const[k,v]of Object.entries(mode)) p=p.replaceAll(k,v);
+  return p;
+}
+
+function copyAnalysis(btn){copyText(buildAnalysisText(),btn);}
+function copyFactCheck(btn){
+  const report=document.getElementById('ta-report').value.trim();
+  if(!report){alert('レポートを貼り付けてください');return;}
+  copyText(`以下のレポートは、以下の指示でAIが生成したものです。\nレポートのファクトチェックを行い、誤っている箇所と指示に沿っていない箇所のみを指摘してください。\n指摘がある場合には、指摘箇所・指摘内容・修正後内容を記載してください。\n\n--指示--\n${buildAnalysisText()}\n\n--レポート--\n${report}`,btn);
+}
+function copyCorrection(btn){copyText('指摘箇所を指示の内容に沿って修正し、全文出力してください。\nただし、指摘していない箇所は一切変更しないでください。',btn);}
+function copyNBPrompt(btn){copyText(NB_PROMPT,btn);}
+function copyKabutanUrl(btn){
+  const c=getTicker(),m=getMkt();
+  if(!c){alert('コードを入力してください');return;}
+  let urls;
+  if(m==='jp'){
+    urls=[
+      `https://kabutan.jp/stock/kabuka?code=${c}&ashi=wek&page=1`,
+      `https://kabutan.jp/stock/kabuka?code=${c}&ashi=wek&page=2`,
+    ];
+  } else {
+    urls=[
+      `https://us.kabutan.jp/stocks/${c.toUpperCase()}/historical_prices/weekly`,
+      `https://us.kabutan.jp/stocks/${c.toUpperCase()}/historical_prices/weekly?page=2`,
+    ];
+  }
+  copyText(urls.join('\n'),btn);
+}
+function copyIRUrl(btn){
+  const n=getName()||getTicker();
+  if(!n){alert('銘柄名またはコードを入力してください');return;}
+  const url=`https://www.google.com/search?q=${encodeURIComponent(n+' IR情報 決算短信')}`;
+  copyText(url,btn);
+}
+
+async function pasteClip(){
+  try{const t=await navigator.clipboard.readText();document.getElementById('ta-data').value=t;debouncedPrev();}
+  catch(e){alert('クリップボードへのアクセスが拒否されました。手動で貼り付けてください。');}
+}
+function clearData(){document.getElementById('ta-data').value='';document.getElementById('prev-area').innerHTML='';}
+function openKabutan(){const c=getTicker(),m=getMkt();if(!c){alert('コードを入力してください');return;}window.open(m==='jp'?`https://kabutan.jp/stock/kabuka?code=${c}`:`https://us.kabutan.jp/stocks/${c}/`,'_blank');}
+function openIR(){const n=getName()||getTicker();if(!n){alert('銘柄名またはコードを入力してください');return;}window.open(`https://www.google.com/search?q=${encodeURIComponent(n+' IR情報')}`,'_blank');}
+
+// ============================================================
+// PARSER
+// ============================================================
+function parseData(text){
+  const d={sections:{}};let cur=null;
+  for(const raw of text.split('\n')){
+    const t=raw.trim();if(!t)continue;
+    const m=t.match(/^\[(.+)\]$/);
+    if(m){cur=m[1];d.sections[cur]=[];continue;}
+    if(cur)d.sections[cur].push(t);
+  }
+  return d;
+}
+const getSec=(d,n)=>d.sections[n]||[];
+
+function parseBankyo(d){
+  let lines=getSec(d,'銘柄情報');
+  // Fallback: if no [銘柄情報] header found, try to detect from start of text
+  if(!lines.length){
+    const all=d.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('['));
+    const start=d.split('\n').findIndex(l=>l.trim()&&!l.trim().startsWith('['));
+    if(start>=0)lines=d.split('\n').slice(start,start+3).map(l=>l.trim()).filter(Boolean);
+  }
+  const info={};
+  if(lines[0]){const p=lines[0].split('|');info.name=p[0]||'';info.code=p[1]||'';info.price=p[2]||'';info.basis=p[3]||'';info.change=p[4]||'';}
+  info.desc=lines[1]||'';
+  if(lines[2]){lines[2].split('|').forEach(kv=>{const i=kv.indexOf(':');if(i>=0)info[kv.slice(0,i).trim()]=kv.slice(i+1).trim();});}
+  return info;
+}
+
+function parseShortTerm(d){
+  const res={direction:'下落',p0:'',ref52:'',refLabel:'52週安値',indicator:null,scenarios:[]};
+  for(const l of getSec(d,'短期予測')){
+    if(l.startsWith('方向:'))res.direction=l.slice(3).trim();
+    else if(l.startsWith('P0:'))res.p0=l.slice(3).trim();
+    else if(l.startsWith('52週安値:'))res.ref52=l.slice(6).trim();
+    else if(l.startsWith('52週高値:')){res.ref52=l.slice(6).trim();res.refLabel='52週高値';}
+    else if(l.startsWith('指標:')){const rest=l.slice(3).trim();const pp=rest.split('|');res.indicator={val:pp[0].trim(),label:pp[1]?.trim()||'参照指標',sub:pp[2]?.trim()||'バリュエーションの参照基準'};}
+    else{const p=l.split('|');if(p.length>=3)res.scenarios.push({label:p[0],range:p[1],pct:p[2],val:p[3]||'',cond:p[4]||''});}
+  }
+  return res;
+}
+
+function parse12m(d){return getSec(d,'12か月後').map(l=>{const p=l.split('|');return{label:p[0]||'',range:p[1]||'',pct:p[2]||'',cond:p[3]||''};}).filter(r=>r.label);}
+
+function parseTurning(d){return getSec(d,'転換点').map(l=>{const p=l.split('|');return{name:p[0]||'',current:p[1]||'',target:p[2]||'',note:p[3]||''};}).filter(r=>r.name);}
+
+function parseRisks(d){
+  return getSec(d,'リスク').map(l=>{const bar=l.indexOf('|');return bar>=0?{type:l.slice(0,bar),body:l.slice(bar+1)}:null;}).filter(Boolean);
+}
+
+function parseConsensus(d){
+  return getSec(d,'コンセンサス')
+    .map(l=>{const bar=l.indexOf('|');return bar>=0?{label:l.slice(0,bar),val:l.slice(bar+1)}:{label:l,val:''};})
+    .filter(r=>r.label&&!/データなし|なし$|^なし/i.test(r.val));
+}
+
+// ============================================================
+// SLIDE BUILDERS
+// ============================================================
+function lc(l){const ll=String(l).toLowerCase();return ll==='弱気'||ll==='bear'?'bear':ll==='強気'||ll==='bull'?'bull':'base';}
+
+// SLIDE 1
+function buildS1(d){
+  const info=parseBankyo(d);
+  const st=parseShortTerm(d);
+  const factors=getSec(d,'変動要因').slice(0,3);
+  const strengths=getSec(d,'強み').slice(0,4);
+  const weaknesses=getSec(d,'弱み').slice(0,4);
+  const chartLines=getSec(d,'チャート');
+  const isDown=st.direction==='下落';
+  const changeColor=isDown?'#dc2626':'#16a34a';
+  const chartId='cv1_'+Math.random().toString(36).slice(2);
+
+  const factorsHtml=factors.map(f=>`<div class="s1-factor"><span class="s1-fbullet">◆</span>${esc(trimDot(f))}</div>`).join('');
+  const swIcon=(tag,items)=>items.map(s=>`<div class="s1-sw-item"><span class="s1-sw-bullet">${tag}</span>${esc(trimDot(s))}</div>`).join('');
+
+  const metricsData=[
+    {l:'予想PER',v:info['PER']||'—'},
+    {l:'実績PBR',v:info['PBR']||'—'},
+    {l:'配当利回り',v:info['配当']||'—'},
+    {l:'時価総額',v:info['時価総額']||'—'},
+    {l:'52週レンジ',v:info['52週']||'—'},
+  ];
+  const metricsHtml=metricsData.map(m=>
+    `<div class="s1-metric-row"><span class="s1-ml">${esc(m.l)}</span><span class="s1-mv" style="font-size:${m.v.length>12?'13px':m.v.length>8?'15px':'17px'};">${esc(addComma(m.v))}</span></div>`
+  ).join('');
+
+  return `<div class="slide">
+<div class="sl-bar"></div>
+<div class="sl-sig">すみっこマネー大学</div>
+<div class="s1-wrap">
+  <div class="s1-head">
+    <span class="s1-name">${esc(info.name)}</span><span class="s1-code">（${esc(info.code)}）</span><span class="s1-desc">${esc(info.desc)}</span>
+  </div>
+  <div class="s1-upper">
+    <div class="s1-price-card">
+      <div class="s1-price" style="font-size:${(()=>{const s=fmtPrice(info.price,info.code);return s.length>9?'28px':s.length>7?'32px':'40px';})()}">${esc(fmtPrice(info.price,info.code))}</div>
+      <div class="s1-change" style="color:${changeColor};">${esc(cleanPct(info.change))}</div>
+      <div style="font-size:14px;font-weight:500;color:#64748b;margin-top:3px;">${esc(info.basis)}</div>
+    </div>
+    <div class="s1-metrics-card">${metricsHtml}</div>
+    <div class="s1-chart-card">
+      <div class="s1-chart-lbl">週足チャート（直近1年）　売買高</div>
+      <canvas id="${chartId}" class="s1-chart-canvas" data-chart="${esc(chartLines.join(';'))}"></canvas>
+    </div>
+  </div>
+  <div class="s1-lower">
+    <div class="s1-factors-card">
+      <div class="s1-ftitle">${isDown?'▼ なぜ下落しているのか？':'▲ なぜ上昇しているのか？'}</div>
+      ${factorsHtml}
+    </div>
+    <div class="s1-s-card">
+      <div class="s1-sw-title">✓ 企業の強み（Moat）</div>
+      ${swIcon('✓',strengths)}
+    </div>
+    <div class="s1-w-card">
+      <div class="s1-sw-title">✗ 企業の弱み</div>
+      ${swIcon('✗',weaknesses)}
+    </div>
+  </div>
+</div>
+</div>`;
+}
+
+// SLIDE 2
+function buildS2(d){
+  const st=parseShortTerm(d);
+  const info=parseBankyo(d);
+  const isDown=st.direction==='下落';
+  const title=isDown?'底値の株価レンジ予測（短期〜中期）':'天井の株価レンジ予測（短期〜中期）';
+  const refWord=isDown?'52週安値':'52週高値';
+
+  // 参照指標（P0 / ref52 / カスタム指標 or PBR）
+  const thirdM=st.indicator
+    ?{num:esc(st.indicator.val),lbl:esc(st.indicator.label),sub:esc(st.indicator.sub)}
+    :{num:esc(info['PBR']||'—'),lbl:'実績PBR',sub:'バリュエーションの参照基準'};
+  const topMetrics=[
+    {num:esc(fmtPrice(st.p0,info.code)),lbl:'現在の基準株価',sub:`${esc(cleanPct(info.change))}（${esc(info.basis)}）`},
+    {num:st.ref52?esc(fmtPrice(st.ref52,info.code)):'—',lbl:refWord,sub:'過去52週の参照水準'},
+    thirdM,
+  ];
+  const dots={弱気:'🔴',ベース:'🟡',強気:'🟢'};
+  const scenarios=st.scenarios.slice(0,3);
+
+  const metricsHtml=topMetrics.map(m=>`<div class="s2-mb">
+    <div class="s2-mb-num">${m.num}</div>
+    <div class="s2-mb-lbl">${m.lbl}</div>
+    <div class="s2-mb-sub">${m.sub}</div>
+  </div>`).join('');
+
+  const scenRowsHtml=scenarios.map(s=>{
+    const cls=lc(s.label);
+    return `<div class="s2-scen-row ${cls}">
+      <div class="s2-sr-name">${dots[s.label]||'●'} ${esc(s.label)}シナリオ</div>
+      <div class="s2-sr-range">${esc(fmtPrice(s.range,info.code))}</div>
+      <div class="s2-sr-pct">${esc(cleanPct(s.pct))}</div>
+      <div class="s2-sr-cond">${esc(trimDot(s.cond))}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="slide">
+<div class="sl-bar"></div>
+<div class="sl-sig">すみっこマネー大学</div>
+<div class="s2-wrap">
+  <div class="s2-title">${title}</div>
+  <div class="s2-metrics">${metricsHtml}</div>
+  <div class="s2-scen-rows">${scenRowsHtml}</div>
+</div>
+</div>`;
+}
+
+// SLIDE 3
+function buildS3(d){
+  const rows=parse12m(d);
+  const info=parseBankyo(d);
+  const st=parseShortTerm(d);
+  const cons=parseConsensus(d);
+  const p0=parseFloat(st.p0)||0;
+
+  // コンセンサス目標株価を抽出（億/万 なしの数値）
+  function parseConsPrice(cons){
+    for(const c of cons){
+      if(/億|万/.test(c.val))continue;
+      const m=c.val.replace(/,/g,'').match(/(\d{3,})/);
+      if(m){const n=parseInt(m[1]);if(n>=100&&n<=200000)return n;}
+    }
+    return 0;
+  }
+  const consPrice=parseConsPrice(cons);
+
+  // Collect all prices for range calculation
+  const prices=[];
+  if(p0)prices.push(p0);
+  if(consPrice)prices.push(consPrice);
+  rows.forEach(r=>{
+    r.range.replace(/[\d,]+/g,m=>{const n=parseFloat(m.replace(/,/g,''));if(!isNaN(n))prices.push(n);});
+  });
+  const minP=prices.length?Math.min(...prices):0;
+  const maxP=prices.length?Math.max(...prices):1;
+  const span=maxP-minP||1;
+  const pct=v=>((v-minP)/span*100).toFixed(2);
+
+  // Zone positions for each scenario
+  function zoneStyle(r){
+    const nums=[];r.range.replace(/[\d,]+/g,m=>{const n=parseFloat(m.replace(/,/g,''));if(!isNaN(n))nums.push(n);});
+    if(nums.length<1)return'';
+    const lo=Math.min(...nums),hi=Math.max(...nums);
+    return `left:${pct(lo)}%;width:${Math.max(0.5,pct(hi)-pct(lo))}%;`;
+  }
+
+  const zonesHtml=rows.map(r=>`<div class="s3-zone ${lc(r.label)}" style="${zoneStyle(r)}"></div>`).join('');
+
+  const p0Pct=p0?pct(p0):'50';
+  const bearRow=rows.find(r=>r.label==='弱気');
+  const bullRow=rows.find(r=>r.label==='強気');
+  const bearMin=bearRow?bearRow.range.split(/[〜～]/)[0].trim():'';
+  const bullMaxNums=(bullRow?.range||'').match(/[\d,]+/g);
+  const bullMax=bullMaxNums?bullMaxNums[bullMaxNums.length-1]:'';
+
+  const currSuf=isUSCode(info.code)?'$':'円';
+  const fmtBarPrice=v=>isUSCode(info.code)?'$'+Math.round(v).toLocaleString():Math.round(v).toLocaleString()+'円';
+  const tableRows=rows.map(r=>`<tr class="${lc(r.label)}-row">
+    <td class="s3-sc">${esc(r.label)}</td>
+    <td class="s3-pc">${esc(fmtPrice(r.range,info.code))}</td>
+    <td class="s3-pct">${esc(cleanPct(r.pct))}</td>
+    <td class="s3-cd">${esc(trimDot(r.cond))}</td>
+  </tr>`).join('');
+
+  const consPct=consPrice?pct(consPrice):'';
+
+  return `<div class="slide">
+<div class="sl-bar"></div>
+<div class="sl-sig">すみっこマネー大学</div>
+<div class="s3-wrap">
+  <div class="s3-title-row">
+    <div class="s3-title">12ヶ月後の目標株価 — 3つのシナリオ</div>
+    ${cons.length?`<div class="s3-cons">${cons.map(c=>`<span class="s3-cons-label">${esc(c.label)}</span><span class="s3-cons-val">${esc(c.val)}</span>`).join('<span style="color:#fde68a;margin:0 8px;">｜</span>')}</div>`:''}</div>
+  <div class="s3-bar-section">
+    <div class="s3-bar-outer">
+      <div class="s3-bar-track">
+        ${zonesHtml}
+        ${p0?`<div class="s3-marker" style="left:${p0Pct}%;">
+          <div class="s3-marker-dot"></div>
+          <div class="s3-marker-line"></div>
+          <div class="s3-marker-lbl">現在値 ${esc(fmtPrice(st.p0,info.code))}</div>
+        </div>`:''}
+        ${consPrice&&consPct?`<div class="s3-cmarker" style="left:${consPct}%;">
+          <div class="s3-cmarker-lbl">目標 ${isUSCode(info.code)?'$'+addComma(String(consPrice)):addComma(String(consPrice))+'円'}</div>
+          <div class="s3-cmarker-dot"></div>
+          <div class="s3-cmarker-line"></div>
+        </div>`:''}
+      </div>
+      <div class="s3-bar-prices">
+        <span>${fmtBarPrice(minP)}</span>
+        <span>${fmtBarPrice((minP+maxP)/2)}</span>
+        <span>${fmtBarPrice(maxP)}</span>
+      </div>
+    </div>
+  </div>
+  <table class="s3-table">
+    <thead><tr>
+      <th style="width:10%">シナリオ</th>
+      <th style="width:24%">目標レンジ</th>
+      <th style="width:20%">現在値比</th>
+      <th>前提条件</th>
+    </tr></thead>
+    <tbody>${tableRows}</tbody>
+  </table>
+</div>
+</div>`;
+}
+
+// SLIDE 4
+function buildS4(d){
+  const items=parseTurning(d);
+  const info=parseBankyo(d);
+  const n=items.length;
+
+  function isNumericVal(s){
+    const cleaned=String(s).replace(/[^\d.\-+]/g,'');
+    return cleaned.length>0&&!isNaN(parseFloat(cleaned))&&!['マイナス','赤字','負','未達','なし','—'].some(w=>String(s).includes(w));
+  }
+
+  function gaugeW(cur,tgt){
+    const c=parseFloat(String(cur).replace(/[^\d.]/g,''));
+    const tStr=String(tgt).replace(/[〜～].*/,'');
+    const t=parseFloat(tStr.replace(/[^\d.]/g,''));
+    if(isNaN(c)||isNaN(t)||t===0)return 0;
+    return Math.min(100,Math.round(c/t*100));
+  }
+
+  // Dynamic item height based on count
+  const mbPx=n>=6?6:8;
+
+  const itemsHtml=items.map(item=>{
+    const num=isNumericVal(item.current);
+    const gw=num?gaugeW(item.current,item.target):0;
+    const visual=num
+      ?`<div class="s4-gauge-bg"><div class="s4-gauge-fill" style="width:${gw}%;"></div></div>`
+      :`<div class="s4-milestone">
+          <div class="s4-ms-now">現在：${esc(item.current)}</div>
+          <div class="s4-ms-line"></div>
+          <div class="s4-ms-tgt">目安：${esc(item.target)}</div>
+          <div class="s4-ms-label">未達</div>
+        </div>`;
+    return `<div class="s4-item" style="margin-bottom:${mbPx}px;">
+      <div class="s4-item-head">
+        <div class="s4-iname">${esc(item.name)}</div>
+        ${num?`<div class="s4-ivals">現在 <span class="s4-icur">${esc(item.current)}</span> → 目安 <span class="s4-itgt">${esc(item.target)}</span></div>`:''}
+      </div>
+      ${visual}
+      ${item.note?`<div class="s4-inote">${esc(item.note)}</div>`:''}
+    </div>`;
+  }).join('');
+
+  return `<div class="slide">
+<div class="sl-bar"></div>
+<div class="sl-sig">すみっこマネー大学</div>
+<div class="s4-wrap">
+  <div class="s4-title">転換点を見極める「株価以外のモノサシ」</div>
+  <div class="s4-items">${itemsHtml}</div>
+</div>
+</div>`;
+}
+
+// SLIDE 5
+function buildS5(d){
+  const risks=parseRisks(d);
+  const info=parseBankyo(d);
+  const st=parseShortTerm(d);
+  const isDown=st.direction==='下落';
+  const rtitles={'下振れ':'▼ さらなる下落リスク（短期レンジの下振れ）','崩壊':'▼ 上昇トレンド崩壊リスク','修正':'▼ シナリオ下方修正リスク（12か月予測の前提崩壊）'};
+
+  const risksHtml=risks.map((r,i)=>{
+    const bodyCls=i===0?'r1':'r2';
+    const titCls=i===0?'r1-t':'r2-t';
+    const title=rtitles[r.type]||`▼ ${r.type}`;
+    const bullets=r.body.split(/。|・/).filter(s=>s.trim().length>3)
+      .map(s=>`<li>${esc(trimDot(s))}</li>`).join('');
+    return `<div class="s5-rsection">
+      <div class="s5-rtitle ${titCls}">${title}</div>
+      <div class="s5-rbody ${bodyCls}"><ul class="s5-rlist">${bullets}</ul></div>
+    </div>`;
+  }).join('');
+
+  return `<div class="slide">
+<div class="sl-bar"></div>
+<div class="sl-sig">すみっこマネー大学</div>
+<div class="s5-wrap">
+  <div class="s5-title">投資家が注意すべきリスク</div>
+  <div class="s5-risks">${risksHtml}</div>
+</div>
+</div>`;
+}
+
+function buildAll(d){
+  const info=parseBankyo(d);
+  const n=info.name||'';const c=info.code||'';
+  return[
+    {html:buildS1(d),name:`${c}_${n}_01_現状整理`},
+    {html:buildS2(d),name:`${c}_${n}_02_短期予測`},
+    {html:buildS3(d),name:`${c}_${n}_03_12か月シナリオ`},
+    {html:buildS4(d),name:`${c}_${n}_04_転換点`},
+    {html:buildS5(d),name:`${c}_${n}_05_リスク`},
+  ];
+}
+
+// ============================================================
+// CHART (light theme)
+// ============================================================
+function drawChart(canvas,lines){
+  const cW=canvas.offsetWidth>0?canvas.offsetWidth:(canvas.getBoundingClientRect().width||390);
+  const cH=canvas.offsetHeight>0?canvas.offsetHeight:(canvas.getBoundingClientRect().height||320);
+  canvas.width=cW*2;canvas.height=cH*2;
+  canvas.style.width=cW+'px';canvas.style.height=cH+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(2,2);ctx.clearRect(0,0,cW,cH);
+  ctx.fillStyle='#f8fafc';ctx.fillRect(0,0,cW,cH);
+
+  const data=[];
+  lines.forEach(row=>{
+    const cols=row.split(',');if(cols.length<5)return;
+    const dt=cols[0].trim().split('-');
+    const o=parseFloat(cols[1]),h=parseFloat(cols[2]),l=parseFloat(cols[3]),c=parseFloat(cols[4]),v=cols[5]?parseFloat(cols[5]):0;
+    if(!isNaN(o)&&!isNaN(h)&&!isNaN(l)&&!isNaN(c)){
+      const yr=dt[0]?parseInt(dt[0]):0,mo=dt[1]?parseInt(dt[1]):0,dy=dt[2]?parseInt(dt[2]):0;
+      data.push({yr,mo,dy,sortKey:yr*10000+mo*100+dy,open:o,high:h,low:l,close:c,vol:v});
+    }
+  });
+  // 古い順（昇順）にソート — NotebookLMは新しい順で出力するため
+  data.sort((a,b)=>a.sortKey-b.sortKey);
+
+  if(data.length<2){
+    ctx.fillStyle='#94a3b8';ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('チャートデータなし',cW/2,cH/2);return;
+  }
+
+  const pL=6,pR=52,pT=14;
+  const volH=Math.round(cH*0.18);
+  const pB=volH+18;
+  const cw=cW-pL-pR,ch=cH-pT-pB;
+
+  // Y軸: 実データ範囲に12%余白を加え、きりの良い目盛り値を計算
+  let rawMin=Infinity,rawMax=-Infinity;
+  data.forEach(d=>{if(d.low<rawMin)rawMin=d.low;if(d.high>rawMax)rawMax=d.high;});
+  const pad=(rawMax-rawMin)*0.12;
+  const minP=rawMin-pad;
+  const maxP=rawMax+pad;
+  const scY=ch/(maxP-minP);
+  const maxV=Math.max(...data.map(d=>d.vol));
+
+  // きりの良いY軸目盛り（100/200/500/1000/2000/5000単位）
+  function niceStep(range){
+    const exp=Math.pow(10,Math.floor(Math.log10(range)));
+    const f=range/exp;
+    if(f<1.5)return exp*0.2;
+    if(f<3)return exp*0.5;
+    if(f<7)return exp;
+    return exp*2;
+  }
+  const step=niceStep(maxP-minP);
+  const tickStart=Math.ceil(minP/step)*step;
+  const ticks=[];
+  for(let t=tickStart;t<=maxP;t+=step)ticks.push(Math.round(t));
+
+  // Grid & Y軸ラベル
+  ctx.strokeStyle='rgba(226,232,240,0.8)';ctx.lineWidth=0.5;
+  ticks.forEach(p=>{
+    const y=pT+ch-(p-minP)*scY;
+    if(y<pT||y>pT+ch)return;
+    ctx.beginPath();ctx.moveTo(pL,y);ctx.lineTo(pL+cw,y);ctx.stroke();
+    ctx.fillStyle='#94a3b8';ctx.font='10px Arial';ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText(p.toLocaleString(),pL+cw+3,y);
+  });
+
+  // X軸ラベル: 最初はyyyy/m、年が変わるときもyyyy/m、それ以外はm
+  const sX=cw/data.length;
+  ctx.fillStyle='#94a3b8';ctx.font='10px Arial';ctx.textAlign='center';ctx.textBaseline='top';
+  // 最初と最後、およそ6本ごとに表示
+  const step_x=Math.max(1,Math.round(data.length/6));
+  data.forEach((d,i)=>{
+    const showTick=(i===0)||(i===data.length-1)||(i%step_x===0);
+    if(!showTick)return;
+    const lbl=`${d.mo}月`;
+    ctx.fillText(lbl,pL+i*sX+sX/2,pT+ch+4);
+  });
+
+  data.forEach((d,i)=>{
+    const cx=pL+i*sX+sX/2;
+    const yH=pT+ch-(d.high-minP)*scY,yL=pT+ch-(d.low-minP)*scY;
+    const yO=pT+ch-(d.open-minP)*scY,yC=pT+ch-(d.close-minP)*scY;
+    const isUp=d.close>=d.open;
+    const col=isUp?'#dc2626':'#2563eb';
+    const bW=Math.max(1,sX*0.6);
+    ctx.beginPath();ctx.moveTo(cx,yH);ctx.lineTo(cx,yL);
+    ctx.strokeStyle=col;ctx.lineWidth=Math.max(0.7,sX*0.1);ctx.stroke();
+    ctx.fillStyle=col;
+    ctx.fillRect(cx-bW/2,Math.min(yO,yC),bW,Math.max(1,Math.abs(yC-yO)));
+    if(maxV>0){
+      const vH=(d.vol/maxV)*volH*0.85;
+      ctx.fillStyle=isUp?'rgba(220,38,38,0.35)':'rgba(37,99,235,0.35)';
+      ctx.fillRect(cx-bW/2,cH-pB+pB-vH,bW,vH);
+    }
+  });
+}
+
+// ============================================================
+// PREVIEW
+// ============================================================
+let prevTimer=null;
+function debouncedPrev(){clearTimeout(prevTimer);prevTimer=setTimeout(renderPrev,600);}
+
+function renderPrev(){
+  const text=document.getElementById('ta-data').value.trim();
+  const area=document.getElementById('prev-area');
+  area.innerHTML='';if(!text)return;
+  const d=parseData(text);
+  const slides=buildAll(d);
+  const ctrlW=document.querySelector('.ctrl')?.offsetWidth||Math.min(440,Math.max(300,window.innerWidth*0.3));
+  const PREV_PAD=28; // prev-area padding 14px×2
+  const W=(area.clientWidth||(window.innerWidth-ctrlW-42))-PREV_PAD;
+  const gap=10;
+  const cols=2;
+  const iW=Math.floor((W-gap)/cols*0.82);
+  const scale=iW/SLIDE_W;
+  const iH=Math.round(SLIDE_H*scale);
+  slides.forEach(s=>{
+    const wrap=document.createElement('div');
+    wrap.className='prev-slide';
+    wrap.style.cssText=`width:${iW}px;height:${iH}px;`;
+    wrap.title=s.name;
+    wrap.addEventListener('click',()=>dlSingle(s));
+    const inner=document.createElement('div');
+    inner.style.cssText=`position:absolute;top:0;left:0;width:${SLIDE_W}px;height:${SLIDE_H}px;transform:scale(${scale});transform-origin:top left;pointer-events:none;`;
+    inner.innerHTML=s.html;
+    wrap.appendChild(inner);
+    area.appendChild(wrap);
+    setTimeout(()=>{
+      const cv=inner.querySelector('canvas[data-chart]');
+      if(cv)drawChart(cv,cv.dataset.chart.split(';').filter(Boolean));
+    },60);
+  });
+}
+window.addEventListener('resize',()=>{if(document.getElementById('ta-data').value.trim())debouncedPrev();});
+
+// ============================================================
+// DOWNLOAD
+// ============================================================
+async function renderToBlob(slide){
+  const ct=document.getElementById('render-target');
+  ct.innerHTML=slide.html;
+  await new Promise(r=>setTimeout(r,150));
+  const cv=ct.querySelector('canvas[data-chart]');
+  if(cv){drawChart(cv,cv.dataset.chart.split(';').filter(Boolean));await new Promise(r=>setTimeout(r,120));}
+  const el=ct.querySelector('.slide');
+  const c=await html2canvas(el,{width:SLIDE_W,height:SLIDE_H,scale:2,useCORS:true,allowTaint:true,backgroundColor:'#f8fafc',logging:false});
+  ct.innerHTML='';
+  return new Promise(res=>c.toBlob(res,'image/png'));
+}
+
+async function dlSingle(slide){
+  setStatus(`${slide.name} をレンダリング中...`);
+  try{
+    const blob=await renderToBlob(slide);
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=slide.name+'.png';a.click();
+    URL.revokeObjectURL(url);
+    document.getElementById('mob-img').src=url;
+    document.getElementById('mob-prev').style.display='block';
+    setStatus(`✓ ${slide.name}.png をダウンロードしました`,3000);
+  }catch(e){setStatus('エラー: '+e.message);}
+}
+
+async function downloadAll(){
+  const text=document.getElementById('ta-data').value.trim();
+  if(!text){alert('スライドデータを入力してください');return;}
+  const btn=document.getElementById('dl-btn');btn.disabled=true;
+  try{
+    const d=parseData(text);
+    const slides=buildAll(d);
+    const zip=new JSZip();
+    for(let i=0;i<slides.length;i++){
+      setStatus(`レンダリング中 ${i+1}/${slides.length}...`);
+      zip.file(slides[i].name+'.png',await renderToBlob(slides[i]));
+    }
+    setStatus('ZIPを作成中...');
+    const zb=await zip.generateAsync({type:'blob'});
+    const info=parseBankyo(d);
+    const url=URL.createObjectURL(zb);
+    const a=document.createElement('a');
+    a.href=url;a.download=`${info.code||'stock'}_${info.name||'analysis'}_slides.zip`;a.click();
+    URL.revokeObjectURL(url);
+    setStatus('✓ ダウンロード完了！',3000);
+  }catch(e){setStatus('エラー: '+e.message);}
+  btn.disabled=false;
+}
+
+// mobile responsive
+function checkMob(){const ctrl=document.querySelector('.ctrl');if(window.innerWidth<820){document.body.style.flexDirection='column';ctrl.style.width='100%';ctrl.style.maxHeight='none';}else{document.body.style.flexDirection='';ctrl.style.width='';ctrl.style.maxHeight='';}}
+checkMob();window.addEventListener('resize',checkMob);
+</script>
+</body>
+</html>
