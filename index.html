@@ -175,6 +175,9 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:
 .s4-ms-tgt{font-size:16px;font-weight:700;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:4px 12px;white-space:nowrap;}
 .s4-ms-label{font-size:14px;color:#475569;margin-left:10px;}
 .s4-inote{font-size:15px;color:#475569;margin-top:6px;line-height:1.55;}
+.s4-dual{display:flex;gap:8px;margin-top:2px;}
+.s4-dual-pos{flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:5px 12px;font-size:15px;color:#059669;font-weight:600;}
+.s4-dual-neg{flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:5px 12px;font-size:15px;color:#dc2626;font-weight:600;}
 
 /* ===== SLIDE 5: リスク ===== */
 .s5-wrap{padding:44px 72px;display:flex;flex-direction:column;height:720px;box-sizing:border-box;justify-content:center;gap:20px;}
@@ -435,7 +438,7 @@ const NB_PROMPT=`あなたはプロの証券アナリストであり、データ
 2. 変化率は「▲+XX.X%」または「▼-XX.X%」の形式で記載（±0%に近い場合は「±0%」）。
 3. [チャート]は週足データで出力。直近約1年分（52本程度）の「YYYY-MM-DD,始値,高値,安値,終値,売買高（株数）」を1行1本。
 4. コードブロック（\`\`\`）は不要。テキストのみ出力。
-5. [転換点]の指標数はレポートの内容に応じて可変（3〜7個程度）。
+5. [転換点]の指標数はレポートの内容に応じて可変（3〜7個程度）。1つの指標に対して「〇〇以上→良い／〇〇割れ→悪い」のように双方向のシグナルがある場合は5フィールド形式（指標名|現在値|ポジティブシグナル|ネガティブシグナル|補足説明）を使う。数値で進捗を測れる指標は4フィールド形式（指標名|現在値|目安値|補足説明）を使う。
 6. [短期予測]の「方向」は、下落分析なら「下落」、上昇分析なら「上昇」。
 7. 下落分析では「52週安値」、上昇分析では「52週高値」を記載。
 8. [リスク]の1行目は下落分析なら「下振れ」、上昇分析なら「崩壊」で始める。2行目は必ず「修正」で始める。本文は「・」区切りの箇条書き形式で記載すること（例：「高金利継続で設備投資減退・海外競合の低価格攻勢で受注単価下落・関税コスト増加によるマージン圧縮」）。
@@ -494,7 +497,8 @@ P0:現在株価の数値
 
 [転換点]
 指標名|現在値|目安値|補足説明
-（3〜7個）
+指標名|現在値|ポジティブシグナル|ネガティブシグナル|補足説明
+（3〜7個、形式はどちらでも可）
 
 [リスク]
 下振れ|リスク説明テキスト
@@ -607,7 +611,7 @@ function parseShortTerm(d){
 
 function parse12m(d){return getSec(d,'12か月後').map(l=>{const p=l.split('|');return{label:p[0]||'',range:p[1]||'',pct:p[2]||'',cond:p[3]||''};}).filter(r=>r.label);}
 
-function parseTurning(d){return getSec(d,'転換点').map(l=>{const p=l.split('|');return{name:p[0]||'',current:p[1]||'',target:p[2]||'',note:p[3]||''};}).filter(r=>r.name);}
+function parseTurning(d){return getSec(d,'転換点').map(l=>{const p=l.split('|');if(p.length>=5)return{name:p[0]||'',current:p[1]||'',posSignal:p[2]||'',negSignal:p[3]||'',note:p[4]||'',isDual:true};return{name:p[0]||'',current:p[1]||'',target:p[2]||'',note:p[3]||''};}).filter(r=>r.name);}
 
 function parseRisks(d){
   return getSec(d,'リスク').map(l=>{const bar=l.indexOf('|');return bar>=0?{type:l.slice(0,bar),body:l.slice(bar+1)}:null;}).filter(Boolean);
@@ -753,17 +757,39 @@ function buildS3(d){
   }
   const consPrice=parseConsPrice(cons);
 
-  // Collect all prices for range calculation
-  const prices=[];
-  if(p0)prices.push(p0);
-  if(consPrice)prices.push(consPrice);
+  // Collect scenario prices
+  const scenPrices=[];
+  if(p0)scenPrices.push(p0);
+  if(consPrice)scenPrices.push(consPrice);
   rows.forEach(r=>{
-    r.range.replace(/[\d,]+/g,m=>{const n=parseFloat(m.replace(/,/g,''));if(!isNaN(n))prices.push(n);});
+    r.range.replace(/[\d,]+/g,m=>{const n=parseFloat(m.replace(/,/g,''));if(!isNaN(n))scenPrices.push(n);});
   });
-  const minP=prices.length?Math.min(...prices):0;
-  const maxP=prices.length?Math.max(...prices):1;
+  const scenMin=scenPrices.length?Math.min(...scenPrices):0;
+  const scenMax=scenPrices.length?Math.max(...scenPrices):1;
+
+  // Parse 52週 range from [銘柄情報] line 3 (e.g. "8,326〜14,795円" or "513〜958円")
+  function parse52w(s){
+    if(!s)return null;
+    const nums=String(s).replace(/,/g,'').match(/[\d.]+/g);
+    if(!nums||nums.length<2)return null;
+    return{lo:parseFloat(nums[0]),hi:parseFloat(nums[nums.length-1])};
+  }
+  const w52=parse52w(info['52週']);
+
+  // Bar range: anchor to 52週 range, extending to cover all scenarios
+  let barMin,barMax;
+  if(w52){
+    barMin=Math.min(w52.lo,scenMin);
+    barMax=Math.max(w52.hi,scenMax);
+  } else {
+    barMin=scenMin;barMax=scenMax;
+  }
+  const pad=(barMax-barMin)*0.04||barMax*0.04||1;
+  barMin=Math.max(0,barMin-pad);
+  barMax=barMax+pad;
+  const minP=barMin,maxP=barMax;
   const span=maxP-minP||1;
-  const pct=v=>((v-minP)/span*100).toFixed(2);
+  const pct=v=>Math.max(0,Math.min(100,(v-minP)/span*100)).toFixed(2);
 
   // Zone positions for each scenario
   function zoneStyle(r){
@@ -858,6 +884,19 @@ function buildS4(d){
   const mbPx=n>=6?6:8;
 
   const itemsHtml=items.map(item=>{
+    if(item.isDual){
+      return `<div class="s4-item" style="margin-bottom:${mbPx}px;">
+        <div class="s4-item-head">
+          <div class="s4-iname">${esc(item.name)}</div>
+          <div class="s4-ivals">現在 <span class="s4-icur">${esc(item.current)}</span></div>
+        </div>
+        <div class="s4-dual">
+          <div class="s4-dual-pos">↑ ${esc(item.posSignal)}</div>
+          <div class="s4-dual-neg">↓ ${esc(item.negSignal)}</div>
+        </div>
+        ${item.note?`<div class="s4-inote">${esc(item.note)}</div>`:''}
+      </div>`;
+    }
     const num=isNumericVal(item.current);
     const gw=num?gaugeW(item.current,item.target):0;
     const visual=num
