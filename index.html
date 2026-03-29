@@ -59,13 +59,13 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:
 .s1-wrap{padding:24px 64px 22px;display:flex;flex-direction:column;gap:8px;height:720px;box-sizing:border-box;justify-content:center;}
 /* head: name + code + desc all inline */
 .s1-head{padding-bottom:8px;border-bottom:1px solid #e2e8f0;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.s1-name{font-size:28px;font-weight:900;color:#0f172a;line-height:1.2;}
+.s1-name{font-size:22px;font-weight:900;color:#0f172a;line-height:1.2;}
 .s1-code{font-size:13px;color:#94a3b8;font-weight:400;margin-left:6px;}
 .s1-desc{font-size:12px;color:#64748b;margin-left:8px;}
 /* upper row: price-card | metrics-card | chart */
 .s1-upper{display:flex;gap:12px;flex-shrink:0;height:148px;}
 .s1-price-card{width:195px;flex-shrink:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;display:flex;flex-direction:column;justify-content:center;}
-.s1-price{font-size:40px;font-weight:900;color:#0f172a;line-height:1;}
+.s1-price{font-size:40px;font-weight:900;color:#0f172a;line-height:1;white-space:nowrap;}
 .s1-change{font-size:17px;font-weight:700;margin-top:6px;}
 .s1-metrics-card{width:285px;flex-shrink:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:4px 12px;display:flex;flex-direction:column;justify-content:space-evenly;overflow:hidden;}
 .s1-metric-row{display:flex;justify-content:space-between;align-items:baseline;padding:1px 0;border-bottom:1px solid #f8fafc;}
@@ -158,11 +158,11 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:
 .s3-cd{color:#64748b;font-size:16px;line-height:1.6;}
 
 /* ===== SLIDE 4: 転換点のモノサシ ===== */
-.s4-wrap{padding:44px 72px;display:flex;flex-direction:column;height:720px;box-sizing:border-box;justify-content:center;gap:16px;}
+.s4-wrap{padding:44px 72px;display:flex;flex-direction:column;height:720px;box-sizing:border-box;justify-content:center;gap:10px;}
 .s4-title{font-size:36px;font-weight:900;color:#0f172a;flex-shrink:0;}
-.s4-items{display:flex;flex-direction:column;gap:7px;}
+.s4-items{display:flex;flex-direction:column;gap:10px;}
 .s4-item{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 18px;border-left:3px solid #2563eb;}
-.s4-item-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}
+.s4-item-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
 .s4-iname{font-size:20px;font-weight:700;color:#1e293b;}
 .s4-ivals{font-size:17px;color:#475569;}
 .s4-icur{color:#0f172a;font-weight:700;}
@@ -189,7 +189,7 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:
 .th-slide{width:1280px;height:720px;overflow:hidden;position:relative;display:flex;flex-direction:column;}
 
 /* ===== SLIDE 5: リスク ===== */
-.s5-wrap{padding:44px 72px;display:flex;flex-direction:column;height:720px;box-sizing:border-box;justify-content:center;gap:36px;}
+.s5-wrap{padding:44px 72px;display:flex;flex-direction:column;height:720px;box-sizing:border-box;justify-content:center;gap:40px;}
 .s5-title{font-size:36px;font-weight:900;color:#0f172a;flex-shrink:0;}
 .s5-sub{font-size:16px;color:#64748b;margin-bottom:24px;flex-shrink:0;}
 .s5-risks{display:flex;flex-direction:column;gap:22px;}
@@ -374,7 +374,7 @@ FCF|マイナス|黒字化|営業CFが投資CFを上回る状態
     <div id="th-status" style="font-size:11px;color:var(--muted);min-height:16px;"></div>
     <div class="card" id="th-preview-card" style="display:none;">
       <h2>プレビュー（テキスト変更で自動更新）</h2>
-      <div id="th-preview-wrap" style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:4px;width:100%;">
+      <div id="th-preview-wrap" style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:4px;width:62%;">
         <div id="th-preview-inner"></div>
       </div>
     </div>
@@ -668,24 +668,7 @@ function parse12m(d){return getSec(d,'12か月後').map(l=>{const p=l.split('|')
 function parseTurning(d){return getSec(d,'転換点').map(l=>{const p=l.split('|');if(p.length>=5)return{name:p[0]||'',current:p[1]||'',posSignal:p[2]||'',negSignal:p[3]||'',note:p[4]||'',isDual:true};return{name:p[0]||'',current:p[1]||'',target:p[2]||'',note:p[3]||''};}).filter(r=>r.name);}
 
 function parseRisks(d){
-  const lines=getSec(d,'リスク');
-  const risks=[];let cur=null;
-  for(const l of lines){
-    const bar=l.indexOf('|');
-    if(bar>=0){
-      if(cur)risks.push(cur);
-      // inline ・-separated bullets in body text
-      const bodyText=l.slice(bar+1);
-      const bullets=bodyText.split('・').map(s=>trimDot(s.trim())).filter(s=>s.length>3);
-      cur={type:l.slice(0,bar),bullets};
-    } else if(cur&&l.trim()){
-      // continuation line (separate ・ bullet lines)
-      const cleaned=trimDot(l.replace(/^[・\s]+/,'').trim());
-      if(cleaned.length>3)cur.bullets.push(cleaned);
-    }
-  }
-  if(cur)risks.push(cur);
-  return risks;
+  return getSec(d,'リスク').map(l=>{const bar=l.indexOf('|');return bar>=0?{type:l.slice(0,bar),body:l.slice(bar+1)}:null;}).filter(Boolean);
 }
 
 function parseConsensus(d){
@@ -1010,7 +993,8 @@ function buildS5(d){
     const bodyCls=i===0?'r1':'r2';
     const titCls=i===0?'r1-t':'r2-t';
     const title=rtitles[r.type]||`▼ ${r.type}`;
-    const bullets=(r.bullets||[]).map(s=>`<li>${esc(s)}</li>`).join('');
+    const bullets=r.body.split(/。|・/).filter(s=>s.trim().length>3)
+      .map(s=>`<li>${esc(trimDot(s))}</li>`).join('');
     return `<div class="s5-rsection">
       <div class="s5-rtitle ${titCls}">${title}</div>
       <div class="s5-rbody ${bodyCls}"><ul class="s5-rlist">${bullets}</ul></div>
