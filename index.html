@@ -59,14 +59,14 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:
 .s1-wrap{padding:24px 64px 22px;display:flex;flex-direction:column;gap:8px;height:720px;box-sizing:border-box;justify-content:center;}
 /* head: name + code + desc all inline */
 .s1-head{padding-bottom:8px;border-bottom:1px solid #e2e8f0;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.s1-name{font-size:22px;font-weight:900;color:#0f172a;line-height:1.2;}
+.s1-name{font-size:40px;font-weight:900;color:#0f172a;line-height:1.2;}
 .s1-code{font-size:13px;color:#94a3b8;font-weight:400;margin-left:6px;}
 .s1-desc{font-size:12px;color:#64748b;margin-left:8px;}
 /* upper row: price-card | metrics-card | chart */
 .s1-upper{display:flex;gap:12px;flex-shrink:0;height:148px;}
 .s1-price-card{width:195px;flex-shrink:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;display:flex;flex-direction:column;justify-content:center;}
-.s1-price{font-size:40px;font-weight:900;color:#0f172a;line-height:1;white-space:nowrap;}
-.s1-change{font-size:17px;font-weight:700;margin-top:6px;}
+.s1-price{font-size:35px;font-weight:900;color:#0f172a;line-height:1;white-space:nowrap;}
+.s1-change{font-size:20px;font-weight:700;margin-top:6px;}
 .s1-metrics-card{width:285px;flex-shrink:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:4px 12px;display:flex;flex-direction:column;justify-content:space-evenly;overflow:hidden;}
 .s1-metric-row{display:flex;justify-content:space-between;align-items:baseline;padding:1px 0;border-bottom:1px solid #f8fafc;}
 .s1-metric-row:last-child{border-bottom:none;}
@@ -135,7 +135,7 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:
 .s3-marker{position:absolute;top:-16px;bottom:-16px;display:flex;flex-direction:column;align-items:center;transform:translateX(-50%);}
 .s3-marker-line{width:2px;flex:1;background:#0f172a;}
 .s3-marker-dot{width:10px;height:10px;border-radius:50%;background:#0f172a;border:2px solid #fff;flex-shrink:0;}
-.s3-marker-lbl{position:absolute;bottom:-26px;font-size:13px;font-weight:700;color:#0f172a;white-space:nowrap;transform:translateX(-50%);}
+.s3-marker-lbl{position:absolute;top:-26px;font-size:13px;font-weight:700;color:#0f172a;white-space:nowrap;transform:translateX(-50%);}
 /* コンセンサスマーカー（上にラベル） */
 .s3-cmarker{position:absolute;top:-16px;bottom:-16px;display:flex;flex-direction:column;align-items:center;transform:translateX(-50%);}
 .s3-cmarker-lbl{position:absolute;top:-26px;font-size:13px;font-weight:700;color:#d97706;white-space:nowrap;transform:translateX(-50%);}
@@ -668,7 +668,22 @@ function parse12m(d){return getSec(d,'12か月後').map(l=>{const p=l.split('|')
 function parseTurning(d){return getSec(d,'転換点').map(l=>{const p=l.split('|');if(p.length>=5)return{name:p[0]||'',current:p[1]||'',posSignal:p[2]||'',negSignal:p[3]||'',note:p[4]||'',isDual:true};return{name:p[0]||'',current:p[1]||'',target:p[2]||'',note:p[3]||''};}).filter(r=>r.name);}
 
 function parseRisks(d){
-  return getSec(d,'リスク').map(l=>{const bar=l.indexOf('|');return bar>=0?{type:l.slice(0,bar),body:l.slice(bar+1)}:null;}).filter(Boolean);
+  const lines=getSec(d,'リスク');
+  const risks=[];let cur=null;
+  for(const l of lines){
+    const bar=l.indexOf('|');
+    if(bar>=0){
+      if(cur)risks.push(cur);
+      const bodyText=l.slice(bar+1);
+      const bullets=bodyText.split('・').map(s=>trimDot(s.trim())).filter(s=>s.length>3);
+      cur={type:l.slice(0,bar),bullets};
+    } else if(cur&&l.trim()){
+      const cleaned=trimDot(l.replace(/^[・\s]+/,'').trim());
+      if(cleaned.length>3)cur.bullets.push(cleaned);
+    }
+  }
+  if(cur)risks.push(cur);
+  return risks;
 }
 
 function parseConsensus(d){
@@ -717,9 +732,8 @@ function buildS1(d){
   </div>
   <div class="s1-upper">
     <div class="s1-price-card">
-      <div class="s1-price" style="font-size:${(()=>{const s=fmtPrice(info.price,info.code);return s.length>9?'28px':s.length>7?'32px':'40px';})()}">${esc(fmtPrice(info.price,info.code))}</div>
-      <div class="s1-change" style="color:${changeColor};">${esc(cleanPct(info.change))}</div>
-      <div style="font-size:14px;font-weight:500;color:#64748b;margin-top:3px;">${esc(info.basis)}</div>
+      <div class="s1-price" style="font-size:${(()=>{const s=fmtPrice(info.price,info.code);return s.length>9?'28px':s.length>7?'32px':'35px';})()}">${esc(fmtPrice(info.price,info.code))}</div>
+      <div class="s1-change" style="color:${changeColor};">${esc(cleanPct(info.change))}${info.basis?`<span style="font-size:13px;font-weight:500;color:#94a3b8;margin-left:5px;">（${esc(info.basis)}）</span>`:''}</div>
     </div>
     <div class="s1-metrics-card">${metricsHtml}</div>
     <div class="s1-chart-card">
@@ -993,8 +1007,7 @@ function buildS5(d){
     const bodyCls=i===0?'r1':'r2';
     const titCls=i===0?'r1-t':'r2-t';
     const title=rtitles[r.type]||`▼ ${r.type}`;
-    const bullets=r.body.split(/。|・/).filter(s=>s.trim().length>3)
-      .map(s=>`<li>${esc(trimDot(s))}</li>`).join('');
+    const bullets=(r.bullets||[]).map(s=>`<li>${esc(s)}</li>`).join('');
     return `<div class="s5-rsection">
       <div class="s5-rtitle ${titCls}">${title}</div>
       <div class="s5-rbody ${bodyCls}"><ul class="s5-rlist">${bullets}</ul></div>
