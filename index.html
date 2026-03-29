@@ -668,7 +668,24 @@ function parse12m(d){return getSec(d,'12か月後').map(l=>{const p=l.split('|')
 function parseTurning(d){return getSec(d,'転換点').map(l=>{const p=l.split('|');if(p.length>=5)return{name:p[0]||'',current:p[1]||'',posSignal:p[2]||'',negSignal:p[3]||'',note:p[4]||'',isDual:true};return{name:p[0]||'',current:p[1]||'',target:p[2]||'',note:p[3]||''};}).filter(r=>r.name);}
 
 function parseRisks(d){
-  return getSec(d,'リスク').map(l=>{const bar=l.indexOf('|');return bar>=0?{type:l.slice(0,bar),body:l.slice(bar+1)}:null;}).filter(Boolean);
+  const lines=getSec(d,'リスク');
+  const risks=[];let cur=null;
+  for(const l of lines){
+    const bar=l.indexOf('|');
+    if(bar>=0){
+      if(cur)risks.push(cur);
+      // inline ・-separated bullets in body text
+      const bodyText=l.slice(bar+1);
+      const bullets=bodyText.split('・').map(s=>trimDot(s.trim())).filter(s=>s.length>3);
+      cur={type:l.slice(0,bar),bullets};
+    } else if(cur&&l.trim()){
+      // continuation line (separate ・ bullet lines)
+      const cleaned=trimDot(l.replace(/^[・\s]+/,'').trim());
+      if(cleaned.length>3)cur.bullets.push(cleaned);
+    }
+  }
+  if(cur)risks.push(cur);
+  return risks;
 }
 
 function parseConsensus(d){
@@ -993,8 +1010,7 @@ function buildS5(d){
     const bodyCls=i===0?'r1':'r2';
     const titCls=i===0?'r1-t':'r2-t';
     const title=rtitles[r.type]||`▼ ${r.type}`;
-    const bullets=r.body.split(/。|・/).filter(s=>s.trim().length>3)
-      .map(s=>`<li>${esc(trimDot(s))}</li>`).join('');
+    const bullets=(r.bullets||[]).map(s=>`<li>${esc(s)}</li>`).join('');
     return `<div class="s5-rsection">
       <div class="s5-rtitle ${titCls}">${title}</div>
       <div class="s5-rbody ${bodyCls}"><ul class="s5-rlist">${bullets}</ul></div>
