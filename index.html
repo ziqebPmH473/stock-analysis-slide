@@ -798,7 +798,7 @@ function buildS3(d){
   const info=parseBankyo(d);
   const st=parseShortTerm(d);
   const cons=parseConsensus(d);
-  const p0=parseFloat(st.p0)||0;
+  const p0=parseFloat(String(st.p0).replace(/,/g,''))||0;
 
   // コンセンサス目標株価を抽出（億/万 なしの数値）
   function parseConsPrice(cons){
