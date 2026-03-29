@@ -179,6 +179,15 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:
 .s4-dual-pos{flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:5px 12px;font-size:15px;color:#059669;font-weight:600;}
 .s4-dual-neg{flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:5px 12px;font-size:15px;color:#dc2626;font-weight:600;}
 
+/* ===== MODE TABS ===== */
+.prev-tabs{display:flex;gap:4px;margin-bottom:4px;flex-shrink:0;}
+.prev-tab{background:var(--panel);border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:5px 14px;font-size:11px;font-weight:600;cursor:pointer;}
+.prev-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+/* ===== THUMBNAIL TOOL ===== */
+.drop-zone{border:2px dashed var(--border);border-radius:6px;padding:8px 10px;text-align:center;transition:border-color .2s,background .2s;}
+.drop-zone.drag-over{border-color:var(--accent);background:rgba(59,130,246,.07);}
+.th-slide{width:1280px;height:720px;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+
 /* ===== SLIDE 5: リスク ===== */
 .s5-wrap{padding:44px 72px;display:flex;flex-direction:column;height:720px;box-sizing:border-box;justify-content:center;gap:20px;}
 .s5-title{font-size:36px;font-weight:900;color:#0f172a;flex-shrink:0;}
@@ -324,11 +333,56 @@ FCF|マイナス|黒字化|営業CFが投資CFを上回る状態
 </div>
 
 <div class="prev-area">
-  <div style="font-size:11px;color:var(--muted);">プレビュー（クリックで個別ダウンロード）</div>
-  <div class="prev-wrap" id="prev-area"></div>
+  <div class="prev-tabs">
+    <button class="prev-tab active" id="tab-slides" onclick="setMode('slides')">📊 スライド</button>
+    <button class="prev-tab" id="tab-thumb" onclick="setMode('thumb')">🖼 サムネイル</button>
+  </div>
+
+  <!-- スライドビュー -->
+  <div id="slides-view" style="display:flex;flex-direction:column;gap:6px;flex:1;overflow-y:auto;">
+    <div style="font-size:11px;color:var(--muted);">プレビュー（クリックで個別ダウンロード）</div>
+    <div class="prev-wrap" id="prev-area"></div>
+  </div>
+
+  <!-- サムネイルビュー -->
+  <div id="thumb-view" style="display:none;flex-direction:column;gap:8px;flex:1;overflow-y:auto;">
+    <div class="card">
+      <h2>テキスト入力</h2>
+      <p style="font-size:10px;color:var(--muted);margin-bottom:6px;">「：」で上段・中段・下段を区切る。色指定: <span style="color:#ff914d">*オレンジ*</span>　<span style="color:#5ce1e6">#水色#</span>　<span style="color:#ffde59">%黄色%</span></p>
+      <div style="display:flex;gap:14px;margin-bottom:6px;">
+        <label style="font-size:11px;cursor:pointer;display:flex;align-items:center;gap:3px;"><input type="radio" name="th-preset" value="note" checked onchange="applyThumbPreset('note')"> note</label>
+        <label style="font-size:11px;cursor:pointer;display:flex;align-items:center;gap:3px;"><input type="radio" name="th-preset" value="youtube" onchange="applyThumbPreset('youtube')"> YouTube</label>
+      </div>
+      <textarea id="th-input" oninput="debouncedThumb()" style="min-height:54px;">日経平均は*大幅高*：半導体の強気相場：#日米合意#で%主役交代%</textarea>
+    </div>
+    <div class="card">
+      <h2>背景画像（黒帯に透過表示）</h2>
+      <div id="th-bg-drop" class="drop-zone">
+        <img id="th-bg-thumb" style="max-height:32px;max-width:80px;border-radius:3px;margin:0 auto 3px;display:none;">
+        <p id="th-bg-msg" style="font-size:11px;color:var(--muted);margin-bottom:4px;">ドロップ、または</p>
+        <label for="th-bg-input" class="btn-sm">ファイルを選択</label>
+        <input type="file" id="th-bg-input" accept="image/*" style="display:none" onchange="onThBgFile(this)">
+        <div id="th-bg-meta" style="font-size:11px;color:var(--muted);margin-top:3px;"></div>
+        <button id="th-bg-clear" class="btn-danger" style="display:none;margin-top:5px" onclick="clearThBg()">✕ 削除</button>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;">
+        <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;">透過率: <span id="th-op-val">3</span>% <input type="range" id="th-op" min="0" max="50" value="4" oninput="updateThOp(this.value)" style="width:90px;cursor:pointer;"></label>
+        <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;">拡大率: <span id="th-sc-val">110</span>% <input type="range" id="th-sc" min="100" max="200" value="110" oninput="updateThSc(this.value)" style="width:90px;cursor:pointer;"></label>
+      </div>
+    </div>
+    <button class="btn btn-full" id="th-dl-btn" onclick="downloadThumb()">⬇ ダウンロード</button>
+    <div id="th-status" style="font-size:11px;color:var(--muted);min-height:16px;"></div>
+    <div class="card" id="th-preview-card" style="display:none;">
+      <h2>プレビュー（テキスト変更で自動更新）</h2>
+      <div id="th-preview-wrap" style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:4px;width:100%;">
+        <div id="th-preview-inner"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="render-target" style="position:fixed;left:-9999px;top:0;pointer-events:none;"></div>
+<div id="th-render-target" style="position:fixed;left:-9999px;top:0;pointer-events:none;"></div>
 
 <script>
 // ============================================================
@@ -1162,6 +1216,172 @@ async function downloadAll(){
 // mobile responsive
 function checkMob(){const ctrl=document.querySelector('.ctrl');if(window.innerWidth<820){document.body.style.flexDirection='column';ctrl.style.width='100%';ctrl.style.maxHeight='none';}else{document.body.style.flexDirection='';ctrl.style.width='';ctrl.style.maxHeight='';}}
 checkMob();window.addEventListener('resize',checkMob);
+
+// ============================================================
+// MODE SWITCH (スライド / サムネイル)
+// ============================================================
+function setMode(mode){
+  const isThumb=mode==='thumb';
+  document.getElementById('slides-view').style.display=isThumb?'none':'flex';
+  document.getElementById('thumb-view').style.display=isThumb?'flex':'none';
+  document.getElementById('tab-slides').classList.toggle('active',!isThumb);
+  document.getElementById('tab-thumb').classList.toggle('active',isThumb);
+  if(isThumb)renderThumbPreview();
+}
+
+// ============================================================
+// THUMBNAIL TOOL
+// ============================================================
+const THUMB={
+  fontMid:180,fontTopBot:140,
+  fontWeightTop:700,fontWeightMid:900,fontWeightBot:700,
+  shadowColor:'#004aad',shadowX:6,shadowY:9,shadowAlpha:0.4,
+  hTop:235,hMid:250,hBot:235,
+  paddingX:40,paddingXMid:35,
+  offsetTop:5,offsetMid:-10,offsetBot:-25,
+  bgOpacity:0.04,bgScale:110,
+};
+const THUMB_PRESETS={
+  note:{offsetTop:5,offsetMid:-10,offsetBot:-25},
+  youtube:{offsetTop:-10,offsetMid:-10,offsetBot:-10},
+};
+let thBgUrl=null;
+
+function applyThumbPreset(name){
+  const p=THUMB_PRESETS[name];
+  THUMB.offsetTop=p.offsetTop;THUMB.offsetMid=p.offsetMid;THUMB.offsetBot=p.offsetBot;
+  renderThumbPreview();
+}
+
+function onThBgFile(el){if(el.files[0])setThBg(el.files[0]);}
+function setThBg(file){
+  if(!file||!file.type.startsWith('image/'))return;
+  const r=new FileReader();
+  r.onload=e=>{
+    thBgUrl=e.target.result;
+    const t=document.getElementById('th-bg-thumb');
+    t.src=e.target.result;t.style.display='block';
+    document.getElementById('th-bg-msg').textContent='別の画像に変更：';
+    document.getElementById('th-bg-meta').textContent=file.name;
+    document.getElementById('th-bg-clear').style.display='';
+    renderThumbPreview();
+  };
+  r.readAsDataURL(file);
+}
+function updateThOp(v){THUMB.bgOpacity=v/100;document.getElementById('th-op-val').textContent=v;renderThumbPreview();}
+function updateThSc(v){THUMB.bgScale=Number(v);document.getElementById('th-sc-val').textContent=v;renderThumbPreview();}
+function clearThBg(){
+  thBgUrl=null;
+  document.getElementById('th-bg-input').value='';
+  const t=document.getElementById('th-bg-thumb');t.style.display='none';t.src='';
+  document.getElementById('th-bg-msg').textContent='ドロップ、または';
+  document.getElementById('th-bg-meta').textContent='';
+  document.getElementById('th-bg-clear').style.display='none';
+  renderThumbPreview();
+}
+(function(){
+  const z=document.getElementById('th-bg-drop');
+  z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('drag-over');});
+  z.addEventListener('dragleave',()=>z.classList.remove('drag-over'));
+  z.addEventListener('drop',e=>{e.preventDefault();z.classList.remove('drag-over');setThBg(e.dataTransfer.files[0]);});
+})();
+
+function parseThumbnailMarkup(text){
+  const segs=[];const re=/(\*[^*]+\*|#[^#]+#|%[^%]+%)/g;
+  let last=0,m;
+  while((m=re.exec(text))!==null){
+    if(m.index>last)segs.push({text:text.slice(last,m.index),color:null});
+    const inner=m[0].slice(1,-1);
+    const mk=m[0][0];
+    segs.push({text:inner,color:mk==='*'?'#ff914d':mk==='#'?'#5ce1e6':'#ffde59'});
+    last=m.index+m[0].length;
+  }
+  if(last<text.length)segs.push({text:text.slice(last),color:null});
+  return segs;
+}
+function thumbCharW(segs){return segs.reduce((a,s)=>a+[...s.text].reduce((b,c)=>b+(c.charCodeAt(0)>255?2:1),0),0);}
+function thumbFs(cw,base,px){if(!cw)return base;const u=SLIDE_W-(px??THUMB.paddingX)*2;return Math.max(40,Math.min(base,Math.floor(2*u/cw)));}
+function hexRgba(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return `rgba(${r},${g},${b},${a})`;}
+function segsHtml(segs,def){
+  const sh=`${THUMB.shadowX}px ${THUMB.shadowY}px 0px ${hexRgba(THUMB.shadowColor,THUMB.shadowAlpha)}`;
+  return segs.map(s=>`<span style="color:${s.color||def};text-shadow:${sh}">${esc(s.text)}</span>`).join('');
+}
+
+function buildThumbSlide(text){
+  const parts=text.split(/[：:]/);
+  const tS=parseThumbnailMarkup(parts[0]||'');
+  const mS=parseThumbnailMarkup(parts[1]||'');
+  const bS=parseThumbnailMarkup(parts[2]||'');
+  const tF=thumbFs(thumbCharW(tS),THUMB.fontTopBot,THUMB.paddingX);
+  const mF=thumbFs(thumbCharW(mS),THUMB.fontMid,THUMB.paddingXMid);
+  const bF=thumbFs(thumbCharW(bS),THUMB.fontTopBot,THUMB.paddingX);
+  const ff=`'Noto Sans JP',sans-serif`;
+  const bgL=thBgUrl
+    ?`<div style="position:absolute;inset:0;z-index:1;background-image:url('${thBgUrl}');background-size:cover;background-position:center;opacity:${THUMB.bgOpacity};transform:scale(${THUMB.bgScale/100});transform-origin:center;"></div>`
+    :'';
+  return `<div class="th-slide">
+  <div style="position:absolute;inset:0;background:#000;z-index:0;"></div>
+  ${bgL}
+  <div style="position:relative;z-index:2;display:flex;flex-direction:column;height:720px;">
+    <div style="height:${THUMB.hTop}px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+      <div style="font-size:${tF}px;font-weight:${THUMB.fontWeightTop};line-height:1;white-space:nowrap;font-family:${ff};transform:translateY(${THUMB.offsetTop}px);">${segsHtml(tS,'#ffffff')}</div>
+    </div>
+    <div style="background:#fff;height:${THUMB.hMid}px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+      <div style="font-size:${mF}px;font-weight:${THUMB.fontWeightMid};line-height:1;white-space:nowrap;font-family:${ff};transform:translateY(${THUMB.offsetMid}px);">${segsHtml(mS,'#004aad')}</div>
+    </div>
+    <div style="height:${THUMB.hBot}px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+      <div style="font-size:${bF}px;font-weight:${THUMB.fontWeightBot};line-height:1;white-space:nowrap;font-family:${ff};transform:translateY(${THUMB.offsetBot}px);">${segsHtml(bS,'#ffffff')}</div>
+    </div>
+  </div>
+</div>`;
+}
+
+let thumbTimer=null;
+function debouncedThumb(){clearTimeout(thumbTimer);thumbTimer=setTimeout(renderThumbPreview,600);}
+
+function renderThumbPreview(){
+  const text=document.getElementById('th-input').value.trim();
+  const card=document.getElementById('th-preview-card');
+  if(!text){card.style.display='none';return;}
+  const html=buildThumbSlide(text);
+  const wrap=document.getElementById('th-preview-wrap');
+  const cW=wrap.clientWidth||800;
+  const sc=cW/SLIDE_W;
+  wrap.style.height=Math.round(SLIDE_H*sc)+'px';
+  const inner=document.getElementById('th-preview-inner');
+  inner.style.cssText=`position:absolute;top:0;left:0;width:${SLIDE_W}px;height:${SLIDE_H}px;transform:scale(${sc});transform-origin:top left;pointer-events:none;`;
+  inner.innerHTML=html;
+  card.style.display='block';
+}
+window.addEventListener('resize',()=>{if(document.getElementById('thumb-view').style.display!=='none')renderThumbPreview();});
+
+async function downloadThumb(){
+  const text=document.getElementById('th-input').value.trim();
+  if(!text){document.getElementById('th-status').textContent='テキストを入力してください';return;}
+  const btn=document.getElementById('th-dl-btn');
+  const st=document.getElementById('th-status');
+  btn.disabled=true;st.textContent='レンダリング中...';
+  try{
+    const cont=document.getElementById('th-render-target');
+    cont.innerHTML=buildThumbSlide(text);
+    await new Promise(r=>setTimeout(r,400));
+    const el=cont.querySelector('.th-slide');
+    const canvas=await html2canvas(el,{width:SLIDE_W,height:SLIDE_H,scale:2,useCORS:true,allowTaint:true,backgroundColor:'#000000',logging:false});
+    const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
+    const d=new Date();
+    const ds=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=`00_サムネイル_${ds}.png`;a.click();
+    URL.revokeObjectURL(url);
+    cont.innerHTML='';
+    st.textContent='✓ ダウンロードしました';
+    setTimeout(()=>st.textContent='',3000);
+  }catch(e){document.getElementById('th-status').textContent='エラー: '+e.message;}
+  btn.disabled=false;
+}
+
+// 初期プレビュー（フォントロード後）
+document.fonts.ready.then(()=>{if(document.getElementById('th-input').value.trim())renderThumbPreview();});
 </script>
 </body>
 </html>
