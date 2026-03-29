@@ -98,7 +98,7 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:
 .s2-title{font-size:36px;font-weight:900;color:#0f172a;margin-bottom:18px;flex-shrink:0;}
 /* 上段: 3つの参照指標を横並び */
 .s2-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:22px;padding-bottom:22px;border-bottom:2px solid #e2e8f0;flex-shrink:0;}
-.s2-mb-num{font-size:60px;font-weight:900;color:#0f172a;line-height:1;margin-bottom:6px;}
+.s2-mb-num{font-size:40px;font-weight:900;color:#0f172a;line-height:1;margin-bottom:6px;}
 .s2-mb-lbl{font-size:19px;font-weight:700;color:#0f172a;margin-bottom:4px;}
 .s2-mb-sub{font-size:15px;color:#64748b;line-height:1.5;}
 /* 下段: 3シナリオを縦に並べる */
@@ -780,8 +780,8 @@ function buildS2(d){
   const scenarios=st.scenarios.slice(0,3);
 
   const metricsHtml=topMetrics.map(m=>`<div class="s2-mb">
-    <div class="s2-mb-num">${m.num}</div>
     <div class="s2-mb-lbl">${m.lbl}</div>
+    <div class="s2-mb-num">${m.num}</div>
     <div class="s2-mb-sub">${m.sub}</div>
   </div>`).join('');
 
@@ -852,9 +852,8 @@ function buildS3(d){
   } else {
     barMin=scenMin;barMax=scenMax;
   }
-  const pad=(barMax-barMin)*0.04||barMax*0.04||1;
-  barMin=Math.max(0,barMin-pad);
-  barMax=barMax+pad;
+  barMin=Math.max(0,barMin);
+  barMax=barMax;
   const minP=barMin,maxP=barMax;
   const span=maxP-minP||1;
   const pct=v=>Math.max(0,Math.min(100,(v-minP)/span*100)).toFixed(2);
