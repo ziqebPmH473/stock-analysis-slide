@@ -725,13 +725,14 @@ function buildS1(d){
 
   return `<div class="slide">
 <div class="sl-bar"></div>
-<div class="sl-sig">すみっこマネー大学</div>
+<div class="sl-sig">すみっこマネー大学/@sumikko_money</div>
 <div class="s1-wrap">
   <div class="s1-head">
     <span class="s1-name">${esc(info.name)}</span><span class="s1-code">（${esc(info.code)}）</span><span class="s1-desc">${esc(info.desc)}</span>
   </div>
   <div class="s1-upper">
     <div class="s1-price-card">
+      <div style="font-size:11px;font-weight:600;color:#94a3b8;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">株価</div>
       <div class="s1-price" style="font-size:${(()=>{const s=fmtPrice(info.price,info.code);return s.length>9?'28px':s.length>7?'32px':'35px';})()}">${esc(fmtPrice(info.price,info.code))}</div>
       <div class="s1-change" style="color:${changeColor};">${esc(cleanPct(info.change))}${info.basis?`<span style="font-size:13px;font-weight:500;color:#94a3b8;margin-left:5px;">（${esc(info.basis)}）</span>`:''}</div>
     </div>
@@ -797,7 +798,7 @@ function buildS2(d){
 
   return `<div class="slide">
 <div class="sl-bar"></div>
-<div class="sl-sig">すみっこマネー大学</div>
+<div class="sl-sig">すみっこマネー大学/@sumikko_money</div>
 <div class="s2-wrap">
   <div class="s2-title">${title}</div>
   <div class="s2-metrics">${metricsHtml}</div>
@@ -888,7 +889,7 @@ function buildS3(d){
 
   return `<div class="slide">
 <div class="sl-bar"></div>
-<div class="sl-sig">すみっこマネー大学</div>
+<div class="sl-sig">すみっこマネー大学/@sumikko_money</div>
 <div class="s3-wrap">
   <div class="s3-title-row">
     <div class="s3-title">12ヶ月後の目標株価 — 3つのシナリオ</div>
@@ -986,7 +987,7 @@ function buildS4(d){
 
   return `<div class="slide">
 <div class="sl-bar"></div>
-<div class="sl-sig">すみっこマネー大学</div>
+<div class="sl-sig">すみっこマネー大学/@sumikko_money</div>
 <div class="s4-wrap">
   <div class="s4-title">転換点を見極める「株価以外のモノサシ」</div>
   <div class="s4-items">${itemsHtml}</div>
@@ -1015,7 +1016,7 @@ function buildS5(d){
 
   return `<div class="slide">
 <div class="sl-bar"></div>
-<div class="sl-sig">すみっこマネー大学</div>
+<div class="sl-sig">すみっこマネー大学/@sumikko_money</div>
 <div class="s5-wrap">
   <div class="s5-title">投資家が注意すべきリスク</div>
   <div class="s5-risks">${risksHtml}</div>
