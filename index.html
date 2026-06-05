@@ -245,6 +245,10 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:
     <div style="font-size:10px;color:var(--muted);">ChatGPTで実行 → 出力を下に貼付</div>
     <textarea id="ta-report" placeholder="ChatGPTのレポートをここに貼り付け" style="min-height:90px;"></textarea>
     <div class="row">
+      <button class="btn-sm" onclick="pasteReport()" style="flex:1;">📋 貼り付け</button>
+      <button class="btn-sm" onclick="copyReport(this)" style="flex:1;">📄 コピー</button>
+    </div>
+    <div class="row">
       <button class="btn-sm" onclick="copyFactCheck(this)" style="flex:1;">✅ ② ファクトチェック</button>
       <button class="btn-sm" onclick="copyCorrection(this)" style="flex:1;">🔧 ③ 修正指示</button>
     </div>
@@ -353,7 +357,7 @@ FCF|マイナス|黒字化|営業CFが投資CFを上回る状態
         <label style="font-size:11px;cursor:pointer;display:flex;align-items:center;gap:3px;"><input type="radio" name="th-preset" value="note" checked onchange="applyThumbPreset('note')"> note</label>
         <label style="font-size:11px;cursor:pointer;display:flex;align-items:center;gap:3px;"><input type="radio" name="th-preset" value="youtube" onchange="applyThumbPreset('youtube')"> YouTube</label>
       </div>
-      <textarea id="th-input" oninput="debouncedThumb()" style="min-height:54px;">日経平均は*大幅高*：半導体の強気相場：#日米合意#で%主役交代%</textarea>
+      <textarea id="th-input" oninput="debouncedThumb()" style="min-height:54px;">最高値から*40％下落*：ユニチカ：#底値#と%５つの反転サイン%</textarea>
     </div>
     <div class="card">
       <h2>背景画像（黒帯に透過表示）</h2>
@@ -618,6 +622,15 @@ function copyIRUrl(btn){
 async function pasteClip(){
   try{const t=await navigator.clipboard.readText();document.getElementById('ta-data').value=t;debouncedPrev();}
   catch(e){alert('クリップボードへのアクセスが拒否されました。手動で貼り付けてください。');}
+}
+async function pasteReport(){
+  try{const t=await navigator.clipboard.readText();document.getElementById('ta-report').value=t;}
+  catch(e){alert('クリップボードへのアクセスが拒否されました。手動で貼り付けてください。');}
+}
+function copyReport(btn){
+  const report=document.getElementById('ta-report').value.trim();
+  if(!report){alert('レポートが入力されていません');return;}
+  copyText(report,btn);
 }
 function clearData(){document.getElementById('ta-data').value='';document.getElementById('prev-area').innerHTML='';}
 function openKabutan(){const c=getTicker(),m=getMkt();if(!c){alert('コードを入力してください');return;}window.open(m==='jp'?`https://kabutan.jp/stock/kabuka?code=${c}`:`https://us.kabutan.jp/stocks/${c}/`,'_blank');}
