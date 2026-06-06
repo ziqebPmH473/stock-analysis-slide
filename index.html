@@ -232,7 +232,12 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:
         <label><input type="radio" name="dir" value="up"> 上昇</label>
       </div>
     </div>
-    <input type="text" id="inp-period" placeholder="期間 (例: 2022年3月の最高値から71%)">
+    <div class="row" style="gap:4px;">
+      <input type="text" id="inp-base" placeholder="基準: 2026/1/16 2510" style="flex:1;">
+      <input type="text" id="inp-cur" placeholder="現在: 2026/6/5 918" style="flex:1;">
+      <button class="btn-sm" onclick="convertPeriod()">→ 変換</button>
+    </div>
+    <input type="text" id="inp-period" placeholder="期間 (例: 2022年3月の最高値から71% / 5ヶ月で63%)">
     <div class="row">
       <button class="btn-sm" onclick="openKabutan()">🔍 株探</button>
       <button class="btn-sm" onclick="openIR()">🔍 IR検索</button>
@@ -398,6 +403,25 @@ const getDir=()=>document.querySelector('input[name=dir]:checked')?.value||'down
 const getTicker=()=>document.getElementById('inp-ticker').value.trim();
 const getName=()=>document.getElementById('inp-name').value.trim();
 const getPeriod=()=>document.getElementById('inp-period').value.trim();
+// 「基準: 日付 株価」「現在: 日付 株価」から「Xヶ月でY%」を生成し、方向を選択
+function convertPeriod(){
+  const parse=s=>{
+    let date=null,price=null;
+    for(const p of String(s).split(/[\s　]+/).filter(Boolean)){
+      if(p.includes('/')){const d=new Date(p.replace(/[年月]/g,'/').replace(/日/g,''));if(!isNaN(d))date=d;}
+      else{const n=parseFloat(p.replace(/[,，円]/g,''));if(!isNaN(n))price=n;}
+    }
+    return{date,price};
+  };
+  const b=parse(document.getElementById('inp-base').value);
+  const c=parse(document.getElementById('inp-cur').value);
+  if(!b.date||b.price==null||!c.date||c.price==null){alert('基準・現在を「日付 株価」の形式で入力してください（例: 2026/1/16 2510）');return;}
+  const months=Math.max(1,Math.round((c.date-b.date)/86400000/30.44));
+  const pct=Math.round(Math.abs(c.price-b.price)/b.price*100);
+  const up=c.price>=b.price;
+  document.getElementById('inp-period').value=`${months}ヶ月で${pct}%`;
+  document.querySelector(`input[name=dir][value=${up?'up':'down'}]`).checked=true;
+}
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 // 4桁以上の整数部にカンマを挿入
 function addComma(s){return String(s||'').replace(/\d+/g,m=>m.length<4?m:parseInt(m).toLocaleString('ja-JP'));}
@@ -559,7 +583,7 @@ P0:現在株価の数値
 [転換点]
 指標名|現在値|目安値|補足説明
 指標名|現在値|閾値①の説明|閾値②の説明|補足説明
-（3〜7個、形式はどちらでも可）
+（4つを超える場合は、記載の中から最大4個、重要なものをピックアップしてください）
 
 [リスク]
 下振れ|リスク説明テキスト
