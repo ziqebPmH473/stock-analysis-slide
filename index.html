@@ -20,8 +20,10 @@ h1{font-size:17px;font-weight:700;margin-bottom:3px;}
 .card{background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:12px;display:flex;flex-direction:column;gap:7px;}
 .card h2{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);padding-bottom:5px;margin-bottom:1px;}
 .row{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
-input[type=text],textarea{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 9px;border-radius:4px;font-size:12px;font-family:inherit;}
+input[type=text],input[type=date],textarea{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 9px;border-radius:4px;font-size:12px;font-family:inherit;box-sizing:border-box;}
 input[type=text]{flex:1;}
+input[type=date]{color-scheme:dark;height:28px;line-height:normal;}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.7);cursor:pointer;}
 textarea{width:100%;resize:vertical;line-height:1.5;font-size:11px;}
 .btn{background:var(--accent);color:#fff;border:none;border-radius:5px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
 .btn:hover{opacity:.85;}
@@ -221,9 +223,9 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:
         <label><input type="radio" name="mkt" value="us"> US</label>
       </div>
     </div>
-    <div class="row">
-      <input type="text" id="inp-ticker" placeholder="コード (例: 6966)" style="max-width:100px;">
-      <input type="text" id="inp-name" placeholder="銘柄名 (例: 三井ハイテック)">
+    <div class="row" style="flex-wrap:nowrap;">
+      <input type="text" id="inp-ticker" placeholder="コード (例: 6966)" style="flex:0 0 90px;min-width:0;">
+      <input type="text" id="inp-name" placeholder="銘柄名 (例: 三井ハイテック)" style="min-width:0;">
     </div>
     <div class="row">
       <div class="radio-group">
@@ -232,13 +234,13 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:
         <label><input type="radio" name="dir" value="up"> 上昇</label>
       </div>
     </div>
-    <div class="row" style="gap:4px;">
-      <input type="text" id="inp-base-date" placeholder="基準日 2026/1/16" style="flex:1;">
-      <input type="text" id="inp-base-price" placeholder="基準株価 2510" style="max-width:100px;">
+    <div class="row" style="gap:4px;flex-wrap:nowrap;">
+      <input type="date" id="inp-base-date" title="基準日" style="flex:1;min-width:0;">
+      <input type="text" id="inp-base-price" placeholder="基準株価" style="flex:0 0 90px;min-width:0;">
     </div>
-    <div class="row" style="gap:4px;">
-      <input type="text" id="inp-cur-date" placeholder="現在日 2026/6/5" style="flex:1;">
-      <input type="text" id="inp-cur-price" placeholder="現在株価 918" style="max-width:100px;">
+    <div class="row" style="gap:4px;flex-wrap:nowrap;">
+      <input type="date" id="inp-cur-date" title="現在日" style="flex:1;min-width:0;">
+      <input type="text" id="inp-cur-price" placeholder="現在株価" style="flex:0 0 90px;min-width:0;">
       <button class="btn-sm" onclick="convertPeriod()">→ 変換</button>
     </div>
     <input type="text" id="inp-period" placeholder="期間 (例: 2022年3月の最高値から71% / 5ヶ月で63%)">
