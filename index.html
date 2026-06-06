@@ -233,8 +233,12 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:
       </div>
     </div>
     <div class="row" style="gap:4px;">
-      <input type="text" id="inp-base" placeholder="基準: 2026/1/16 2510" style="flex:1;">
-      <input type="text" id="inp-cur" placeholder="現在: 2026/6/5 918" style="flex:1;">
+      <input type="text" id="inp-base-date" placeholder="基準日 2026/1/16" style="flex:1;">
+      <input type="text" id="inp-base-price" placeholder="基準株価 2510" style="max-width:100px;">
+    </div>
+    <div class="row" style="gap:4px;">
+      <input type="text" id="inp-cur-date" placeholder="現在日 2026/6/5" style="flex:1;">
+      <input type="text" id="inp-cur-price" placeholder="現在株価 918" style="max-width:100px;">
       <button class="btn-sm" onclick="convertPeriod()">→ 変換</button>
     </div>
     <input type="text" id="inp-period" placeholder="期間 (例: 2022年3月の最高値から71% / 5ヶ月で63%)">
@@ -403,22 +407,18 @@ const getDir=()=>document.querySelector('input[name=dir]:checked')?.value||'down
 const getTicker=()=>document.getElementById('inp-ticker').value.trim();
 const getName=()=>document.getElementById('inp-name').value.trim();
 const getPeriod=()=>document.getElementById('inp-period').value.trim();
-// 「基準: 日付 株価」「現在: 日付 株価」から「Xヶ月でY%」を生成し、方向を選択
+// 基準日・基準株価・現在日・現在株価から「Xヶ月でY%」を生成し、方向を選択
 function convertPeriod(){
-  const parse=s=>{
-    let date=null,price=null;
-    for(const p of String(s).split(/[\s　]+/).filter(Boolean)){
-      if(p.includes('/')){const d=new Date(p.replace(/[年月]/g,'/').replace(/日/g,''));if(!isNaN(d))date=d;}
-      else{const n=parseFloat(p.replace(/[,，円]/g,''));if(!isNaN(n))price=n;}
-    }
-    return{date,price};
-  };
-  const b=parse(document.getElementById('inp-base').value);
-  const c=parse(document.getElementById('inp-cur').value);
-  if(!b.date||b.price==null||!c.date||c.price==null){alert('基準・現在を「日付 株価」の形式で入力してください（例: 2026/1/16 2510）');return;}
-  const months=Math.max(1,Math.round((c.date-b.date)/86400000/30.44));
-  const pct=Math.round(Math.abs(c.price-b.price)/b.price*100);
-  const up=c.price>=b.price;
+  const pdate=s=>{const d=new Date(String(s).trim().replace(/[年月]/g,'/').replace(/日/g,''));return isNaN(d)?null:d;};
+  const pprice=s=>{const n=parseFloat(String(s).replace(/[,，円\s　]/g,''));return isNaN(n)?null:n;};
+  const bd=pdate(document.getElementById('inp-base-date').value);
+  const bp=pprice(document.getElementById('inp-base-price').value);
+  const cd=pdate(document.getElementById('inp-cur-date').value);
+  const cp=pprice(document.getElementById('inp-cur-price').value);
+  if(!bd||bp==null||!cd||cp==null){alert('基準日・基準株価・現在日・現在株価をすべて入力してください（日付例: 2026/1/16）');return;}
+  const months=Math.max(1,Math.round((cd-bd)/86400000/30.44));
+  const pct=Math.round(Math.abs(cp-bp)/bp*100);
+  const up=cp>=bp;
   document.getElementById('inp-period').value=`${months}ヶ月で${pct}%`;
   document.querySelector(`input[name=dir][value=${up?'up':'down'}]`).checked=true;
 }
