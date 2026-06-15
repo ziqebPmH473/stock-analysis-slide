@@ -433,8 +433,9 @@ function cleanPct(s){return String(s||'').replace(/[▼▲]/g,'');}
 function trimDot(s){return String(s||'').replace(/[。\s]+$/,'').trim();}
 // 通貨記号を除去（円・$・¥）
 function stripCur(s){return String(s||'').replace(/[円$¥]/g,'').trim();}
-// 証券コードから通貨単位を判定（英字あり → US/なし → JP）
-function isUSCode(code){return /[a-zA-Z]/.test(String(code||''));}
+// 証券コードから通貨単位を判定（全て英字 → US / 数字を含む → JP）
+// 日本の新形式コード（例: 285A, 130A）は数字+英字なのでJP扱いにする
+function isUSCode(code){const c=String(code||'').trim();return /[a-zA-Z]/.test(c)&&!/[0-9]/.test(c);}
 // 価格値を整形（既存通貨記号除去 + カンマ + 適切な単位追加）
 function fmtPrice(val,code){const n=addComma(stripCur(val));return isUSCode(code)?'$'+n:n+'円';}
 
@@ -578,9 +579,10 @@ const NB_PROMPT=`あなたはプロの証券アナリストであり、データ
 9. [強み][弱み]はレポート2章の「企業の永続的な強さ・弱さ」から抽出し、各2〜4行で記載。
 10. [コンセンサス]にはアナリスト目標株価のみ1行で記載（例：「アナリスト目標株価|820円」）。目標株価データがない場合はセクション自体を省略。業績コンセンサス（売上・営業利益等）は不要。
 11. [短期予測]・[12か月後]の各シナリオの前提条件（最終フィールド）は、1〜2文の詳細な説明を記載してください。投資家がそのシナリオが成立する理由・根拠を理解できる内容にしてください（例：「海外モーターコア事業の採算が一向に改善せず、27/1期に追加下方修正が発生するケース。PBR0.7〜0.8倍への割引が継続する。」）。
-12. 数値は1,000以上の場合は3桁カンマ区切りで記載（例：1,178億円、10,386,000）。ただし株価・価格レンジは通貨記号なしの数値のみ（例：597、430〜500）。また、[チャート]セクションの始値・高値・安値・終値・売買高は例外として3桁カンマ区切りを使わず、必ずカンマなしの数値にしてください。証券コードが英字を含む場合は米国株なので、スライドツールが自動でドル表記に変換します。
+12. 数値は1,000以上の場合は3桁カンマ区切りで記載（例：1,178億円、10,386,000）。ただし株価・価格レンジは通貨記号なしの数値のみ（例：597、430〜500）。また、[チャート]セクションの始値・高値・安値・終値・売買高は例外として3桁カンマ区切りを使わず、必ずカンマなしの数値にしてください。証券コードが「すべて英字」の場合のみ米国株なので、スライドツールが自動でドル表記に変換します（例：285Aや130Aのように数字を含むコードは日本株なので円表記）。
 13. 各セクションのヘッダー（[銘柄情報]、[変動要因]等）は必ずすべて出力すること。
 14. [短期予測]・[12か月後]のベースシナリオは「最も実現確率が高いシナリオ（概ね40〜60%）」として設定すること。現在株価（P0）を起点に「自然に回復するはずだ」という根拠のない楽観バイアスを排除し、ファンダメンタルズ・マクロ・需給を中立的に評価した結果として導くこと。ベースシナリオが上昇・横ばい・下落のいずれになるかは材料の重みによって決まるため、方向性を事前に決めないこと。
+15. 【最重要・厳守】各セクションには、下記【出力フォーマット】で定義された行だけを出力すること。フォーマットに定義のない行を絶対に追加してはならない。特に[短期予測]・[12か月後]では、シナリオ確率（例：「ベースシナリオ確率:50%」「弱気30%・強気20%」等）や評価テーブル、見出し、注釈、補足コメントを一切出力しないこと。確率はスライドに表示しないため出力不要。[短期予測]は「方向:」「P0:」「52週安値/高値:」「指標:」（指標は省略可）と「弱気/ベース/強気」の3シナリオ行のみ、[12か月後]は「弱気/ベース/強気」の3シナリオ行のみとすること。シナリオ行の先頭は必ず「弱気」「ベース」「強気」のいずれかで始めること。
 
 ---
 ## 【出力フォーマット】
@@ -750,12 +752,12 @@ function parseShortTerm(d){
     else if(l.startsWith('52週安値:'))res.ref52=l.slice(6).trim();
     else if(l.startsWith('52週高値:')){res.ref52=l.slice(6).trim();res.refLabel='52週高値';}
     else if(l.startsWith('指標:')){const rest=l.slice(3).trim();const pp=rest.split('|');res.indicator={val:pp[0].trim(),label:pp[1]?.trim()||'参照指標',sub:pp[2]?.trim()||'バリュエーションの参照基準'};}
-    else{const p=l.split('|');if(p.length>=3)res.scenarios.push({label:p[0],range:p[1],pct:p[2],val:p[3]||'',cond:p[4]||''});}
+    else{const p=l.split('|');const lbl=(p[0]||'').trim();if(p.length>=3&&/^(弱気|ベース|強気|bear|base|bull)$/i.test(lbl))res.scenarios.push({label:lbl,range:p[1],pct:p[2],val:p[3]||'',cond:p[4]||''});}
   }
   return res;
 }
 
-function parse12m(d){return getSec(d,'12か月後').map(l=>{const p=l.split('|');return{label:p[0]||'',range:p[1]||'',pct:p[2]||'',cond:p[3]||''};}).filter(r=>r.label);}
+function parse12m(d){return getSec(d,'12か月後').map(l=>{const p=l.split('|');return{label:(p[0]||'').trim(),range:p[1]||'',pct:p[2]||'',cond:p[3]||''};}).filter(r=>/^(弱気|ベース|強気|bear|base|bull)$/i.test(r.label));}
 
 function parseTurning(d){return getSec(d,'転換点').map(l=>{const p=l.split('|');if(p.length>=5)return{name:p[0]||'',current:p[1]||'',posSignal:p[2]||'',negSignal:p[3]||'',note:p[4]||'',isDual:true};return{name:p[0]||'',current:p[1]||'',target:p[2]||'',note:p[3]||''};}).filter(r=>r.name);}
 
