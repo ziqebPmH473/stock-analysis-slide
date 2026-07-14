@@ -15,9 +15,12 @@
 body{background:var(--bg);color:var(--text);font-family:'Helvetica Neue',Arial,'Hiragino Sans',sans-serif;height:100vh;overflow:hidden;display:flex;gap:14px;padding:14px;}
 h1{font-size:17px;font-weight:700;margin-bottom:3px;}
 .sub{color:var(--muted);font-size:11px;margin-bottom:10px;}
-.ctrl{width:300px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;height:100%;}
+/* 2カラム化: 全カードがスクロールなしで収まるようにする（狭い画面では1カラムに戻す） */
+.ctrl{width:620px;flex-shrink:0;display:block;column-count:2;column-gap:10px;overflow-y:auto;height:100%;}
+.ctrl>*{break-inside:avoid;margin-bottom:8px;}
+@media (max-width:1100px){.ctrl{width:300px;column-count:1;}}
 .prev-area{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;overflow-y:auto;height:100%;}
-.card{background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:12px;display:flex;flex-direction:column;gap:7px;}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:10px;display:flex;flex-direction:column;gap:6px;}
 .card h2{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);padding-bottom:5px;margin-bottom:1px;}
 .row{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
 input[type=text],input[type=date],textarea{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 9px;border-radius:4px;font-size:12px;font-family:inherit;box-sizing:border-box;}
@@ -261,7 +264,7 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:
     </div>
     <div style="font-size:10px;color:var(--muted);">②③を誤りがなくなるまで繰り返す</div>
     <div style="font-size:10px;color:var(--muted);">ChatGPTで実行 → 出力を下に貼付</div>
-    <textarea id="ta-report" placeholder="ChatGPTのレポートをここに貼り付け" style="min-height:90px;"></textarea>
+    <textarea id="ta-report" placeholder="ChatGPTのレポートをここに貼り付け" style="min-height:56px;"></textarea>
     <div class="row">
       <button class="btn-sm" onclick="pasteReport()" style="flex:1;">📋 貼り付け</button>
       <button class="btn-danger" onclick="clearReport()" style="flex:1;">✕ クリア</button>
@@ -339,17 +342,7 @@ FCF|マイナス|黒字化|営業CFが投資CFを上回る状態
       <button class="btn-sm" onclick="pasteClip()">📋 貼り付け</button>
       <button class="btn-danger" onclick="clearData()">✕ クリア</button>
     </div>
-    <textarea id="ta-data" placeholder="NotebookLMの出力をここに貼り付け" style="min-height:120px;" oninput="debouncedPrev()"></textarea>
-  </div>
-
-  <div class="card">
-    <h2>5. 動画素材の生成</h2>
-    <div class="row" style="flex-wrap:nowrap;gap:4px;">
-      <button class="btn-sm" onclick="copyToolText(this)" style="flex:1;min-width:0;">🛠 ツール文章</button>
-      <button class="btn-sm" onclick="copySummaryImage(this)" style="flex:1;min-width:0;">🖼 まとめ画像</button>
-      <button class="btn-sm" onclick="copyScript(this)" style="flex:1;min-width:0;">🎬 台本</button>
-      <button class="btn-sm" onclick="copyAudio(this)" style="flex:1;min-width:0;">🔊 音声</button>
-    </div>
+    <textarea id="ta-data" placeholder="NotebookLMの出力をここに貼り付け" style="min-height:64px;" oninput="debouncedPrev()"></textarea>
   </div>
 
   <button class="btn btn-full" id="dl-btn" onclick="downloadAll()">⬇ 全スライドをZIPでダウンロード</button>
@@ -665,39 +658,6 @@ P0:現在株価の数値
 下振れ|リスク説明テキスト
 修正|シナリオ下方修正リスクの説明テキスト`;
 
-const SCRIPT_PROMPT=`指数動向、各ランキングから今日の東証相場を振り返り、特徴や投資家心理、市場の注目ポイントを1分半（650～800文字）程度で、以下の構成で解説する台本を作成してください。
-・個人的な感想は添えず、事実を伝えることに専念してください。
-・見出しも含めて、メタ情報は記述しないようにしてください。
-・ランキングは、すべての銘柄を読み上げる必要はありません。時間に限りがあるため、特に注目の箇所のみ紹介すれば問題ありません。
-・以下の【構成】の 2～6 は順番を問いません。
-・1～6はすべてを章立てする必要はありません。（関連する内容を１つの章でまとめても構いません）
-・機械的な話し方ではなく、人間らしい自然な話し方にしてください。
-【構成】
-0.オープニング（今日の市場の特徴・注目点を1文でさらっと話し、本題につなげる。結論的なことを言ってしまっても大丈夫です。もったいぶると視聴者は離れます）
-1.指数の値動き
-2.日経平均寄与度
-3.業種別の値動き
-4.個別銘柄の値動き（上昇率ランキング、下落率ランキング）
-5.売買代金ランキング
-6.ニュース
-7.まとめ
-【ルールの原則】
-以下の個別ルールを適用するにあたり、下記の3つの原則を応答の最初から最後まで、常に厳守してください。
-1. ルールは静かに適用する:すべてのルールは、会話の裏側で静かに適用してください。ルールの適用過程や、「〇〇というルールに従い、」のような前置きは一切不要です。
-2. 自然な発話（繰り返し厳禁）:特定の単語や数値を不自然に繰り返す癖があります。（例：「上期、上期は」「4500万円。4500万円」）。すべての発言は、自然な人間の会話のように、一度だけ行ってください。
-3. 一貫性と自己チェック:指示されたルールは、応答の途中で忘れることなく、最後まで一貫して適用してください。応答を終える前に、すべての指示が守られているか必ず自己チェックする習慣をつけてください。
-【基本ルール】
-・この音声では、元の資料やソース、レポート、出典などの存在に一切触れず、内容のみを自然な解説としてまとめてください。
-・日付は「今日」「昨日」と言わず、必ず「8月5日」のように具体的な日付で話してください。特定の日付に続く「前日」などの表現は問題ありません。
-・無理に1人称を使用しなくても問題ありませんが、使用する場合には1人称は「わたし」にしてください。
-・銘柄名は銘柄名一覧表の「銘柄名（正式）」を使用してください。ただし、銘柄名一覧表にない場合は、ソースの名称もしくはレポートの名称を使用してください。
-・選別、まだら模様などの表現は禁止(市場はそういうもので当たり前のこと、全銘柄が一方向に動くものではないため)
-【比喩・たとえ表現のルール】
-・原則として、比喩やたとえ話は使わないこと。
-・「例えるなら〜のようなもので…」「〜にたとえると…」と前置きして、たとえ話を広げる表現は使わないこと。
-・どうしても比喩が必要な場合のみ、「渋滞のように動きが遅くなる」のような、ごく一般的で短い一言の比喩にとどめること。
-・比喩を使うか迷う場合は、比喩を使わずにストレートに説明することを優先すること。`;
-
 // ============================================================
 // COPY HELPERS
 // ============================================================
@@ -730,11 +690,6 @@ function copyFactCheck(btn){
 }
 function copyCorrection(btn){copyText('指摘箇所を指示の内容に沿って修正し、全文出力してください。\nただし、指摘していない箇所は一切変更しないでください。',btn);}
 function copyNBPrompt(btn){copyText(NB_PROMPT,btn);}
-// ④ 動画素材の生成
-function copyScript(btn){copyText(SCRIPT_PROMPT,btn);}
-function copyToolText(btn){alert('ツール文章ボタンの動作は未指定です。コピーする文章・動作をご指定ください。');}
-function copySummaryImage(btn){alert('まとめ画像ボタンの動作は未指定です。動作（例: スライドのダウンロード等）をご指定ください。');}
-function copyAudio(btn){alert('音声ボタンの動作は未指定です。動作をご指定ください。');}
 // ============================================================
 // 株探 自動取得（CF Pages Function: /api/fetch-stock）
 // ============================================================
@@ -759,21 +714,8 @@ async function fetchStock(btn){
       document.getElementById('inp-cur-date').value=d.current.date;
       document.getElementById('inp-cur-price').value=nc(d.current.close);
     }
-    // 基準日・基準株価（空欄のみ）：高値からの下落率と安値からの上昇率の大きい方を基準に採用
-    const bdEl=document.getElementById('inp-base-date'),bpEl=document.getElementById('inp-base-price');
-    if(!bdEl.value&&!bpEl.value.trim()&&d.current){
-      const cur=parseFloat(nc(d.current.close));
-      const hi=d.high?parseFloat(nc(d.high.price)):NaN;
-      const lo=d.low?parseFloat(nc(d.low.price)):NaN;
-      const downPct=isNaN(hi)?-1:(hi-cur)/hi;
-      const upPct=isNaN(lo)||lo===0?-1:(cur-lo)/lo;
-      const base=downPct>=upPct?d.high:d.low;
-      if(base&&base.date){bdEl.value=base.date;bpEl.value=nc(base.price);}
-    }
-    // 基準・現在が揃っていれば期間「Xヶ月でY%」と方向を自動計算
-    if(bdEl.value&&bpEl.value.trim()&&document.getElementById('inp-cur-price').value.trim()){
-      try{convertPeriod();}catch(e){}
-    }
+    // 基準日・基準株価：方向の選択に従う（下落＝取得範囲内の高値／上昇＝安値）
+    applyBaseFromDir();
     // 指標サマリを表示
     const w52=calc52w(d);
     document.getElementById('fetch-info').textContent=
@@ -785,6 +727,24 @@ async function fetchStock(btn){
     alert('株探からの取得に失敗しました。手入力をご利用ください。\n\n'+(e&&e.message?e.message:e));
   }
 }
+// 方向（上昇/下落）の選択に従い、基準日・基準株価を取得範囲内の高値/安値にセットして期間を再計算。
+// 取得後に方向ラジオを切り替えた場合も同じ処理で基準を差し替える。
+function applyBaseFromDir(){
+  const f=window._fetched;if(!f)return;
+  const nc=s=>String(s||'').replace(/,/g,'');
+  const dir=getDir();
+  const base=dir==='down'?f.high:f.low;
+  if(!base||!base.date)return;
+  document.getElementById('inp-base-date').value=base.date;
+  document.getElementById('inp-base-price').value=nc(base.price);
+  if(document.getElementById('inp-cur-price').value.trim()){
+    try{convertPeriod();}catch(e){}
+    // convertPeriodは価格差から方向を再設定するため、選択した方向を維持する
+    const dirEl=document.querySelector(`input[name=dir][value=${dir}]`);
+    if(dirEl)dirEl.checked=true;
+  }
+}
+document.querySelectorAll('input[name=dir]').forEach(r=>r.addEventListener('change',applyBaseFromDir));
 // 取得済みチャートデータ（日足・降順）から直近365日の高値〜安値レンジを算出
 function calc52w(d){
   if(!d||!d.chartData)return'';
