@@ -678,7 +678,7 @@ function copyAnalysis(btn){copyText(buildAnalysisText(),btn);}
 function copyFactCheck(btn){
   const report=document.getElementById('ta-report').value.trim();
   if(!report){alert('レポートを貼り付けてください');return;}
-  copyText(`以下のレポートは、以下の指示でAIが生成したものです。\nレポートのファクトチェックを行い、誤っている箇所と指示に沿っていない箇所のみを指摘してください。\n特に「転換点のモノサシ」に記載された各指標の現在の値が、公表データと一致しているかを必ず確認してください。\n指摘がある場合には、指摘箇所・指摘内容・修正後内容を記載してください。\n\n--指示--\n${buildAnalysisText()}\n\n--レポート--\n${report}`,btn);
+  copyText(`以下のレポートは、以下の指示でAIが生成したものです。\nレポートのファクトチェックを行い、誤っている箇所と指示に沿っていない箇所のみを指摘してください。\n指摘がある場合には、指摘箇所・指摘内容・修正後内容を記載してください。\n\n--指示--\n${buildAnalysisText()}\n\n--レポート--\n${report}`,btn);
 }
 function copyCorrection(btn){copyText('指摘箇所を指示の内容に沿って修正し、全文出力してください。\nただし、指摘していない箇所は一切変更しないでください。',btn);}
 function copyNBPrompt(btn){copyText(NB_PROMPT,btn);}
