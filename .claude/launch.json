@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["serve", "-l", "5500", "."],
       "port": 5500
+    },
+    {
+      "name": "pages-dev",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["wrangler", "pages", "dev", ".", "--port", "8788", "--compatibility-date", "2026-06-02"],
+      "port": 8788
     }
   ]
 }
