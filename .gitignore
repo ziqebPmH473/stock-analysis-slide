@@ -1,0 +1,3 @@
+# wrangler pages dev のローカル一時ファイル（.wrangler/cache は追跡対象のまま）
+.wrangler/state/
+.wrangler/tmp/
