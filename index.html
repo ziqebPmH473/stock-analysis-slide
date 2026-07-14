@@ -708,6 +708,8 @@ async function fetchStock(btn){
     }
     // 基準日・基準株価：方向の選択に従う（下落＝取得範囲内の高値／上昇＝安値）
     applyBaseFromDir();
+    // 高値/安値が取れなかった場合でも銘柄名などをサムネイル文言へ反映
+    updateThumbText();
     // 指標サマリを表示
     const w52=calc52w(d);
     const infoEl=document.getElementById('fetch-info');
@@ -737,8 +739,42 @@ function applyBaseFromDir(){
     const dirEl=document.querySelector(`input[name=dir][value=${dir}]`);
     if(dirEl)dirEl.checked=true;
   }
+  updateThumbText();
 }
 document.querySelectorAll('input[name=dir]').forEach(r=>r.addEventListener('change',applyBaseFromDir));
+// 数字を全角に変換
+function toZenkaku(s){return String(s).replace(/[0-9]/g,c=>String.fromCharCode(c.charCodeAt(0)+0xFEE0));}
+// 基準日〜現在日の経過期間を表記（10日までは日、1ヶ月未満は週間、1年未満はヶ月、1年以上は半年単位）
+function fmtDuration(days){
+  if(days<=10)return `${toZenkaku(Math.max(1,days))}日`;
+  if(days<30)return `${toZenkaku(Math.max(1,Math.round(days/7)))}週間`;
+  if(days<365)return `${toZenkaku(Math.max(1,Math.round(days/30.44)))}ヶ月`;
+  const half=Math.max(2,Math.round(days/182.62));
+  return `${toZenkaku(Math.floor(half/2))}年${half%2?'半':''}`;
+}
+// サムネイル文言の初期設定: 1段目=「〇ヶ月で*〇％下落*」、2段目=銘柄名、3段目=そのまま
+function updateThumbText(){
+  const pdate=s=>{const d=new Date(String(s).trim());return isNaN(d)?null:d;};
+  const pprice=s=>{const n=parseFloat(String(s).replace(/[,，円\s　]/g,''));return isNaN(n)?null:n;};
+  const bd=pdate(document.getElementById('inp-base-date').value);
+  const bp=pprice(document.getElementById('inp-base-price').value);
+  const cd=pdate(document.getElementById('inp-cur-date').value);
+  const cp=pprice(document.getElementById('inp-cur-price').value);
+  const ta=document.getElementById('th-input');
+  if(!ta)return;
+  const parts=ta.value.split('：');
+  if(bd&&bp!=null&&cd&&cp!=null&&bp!==0){
+    const days=Math.max(1,Math.round((cd-bd)/86400000));
+    const pct=Math.round(Math.abs(cp-bp)/bp*100);
+    const word=cp>=bp?'上昇':'下落';
+    parts[0]=`${fmtDuration(days)}で*${toZenkaku(pct)}％${word}*`;
+  }
+  const name=getName();
+  if(name)parts[1]=name;
+  const rest=parts.slice(2).join('：').trim();
+  ta.value=[parts[0]||'',parts[1]||'',rest||'#底値#と%５つの反転サイン%'].join('：');
+  debouncedThumb();
+}
 // 取得済みチャートデータ（日足・降順）から直近365日の高値〜安値レンジを算出
 function calc52w(d){
   if(!d||!d.chartData)return'';
