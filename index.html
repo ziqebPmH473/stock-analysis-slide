@@ -12,29 +12,26 @@
 /* ===== APP UI ===== */
 :root{--bg:#0f172a;--panel:#1e293b;--border:#334155;--text:#e2e8f0;--muted:#94a3b8;--accent:#3b82f6;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:'Helvetica Neue',Arial,'Hiragino Sans',sans-serif;height:100vh;overflow:hidden;display:flex;gap:14px;padding:14px;}
-h1{font-size:17px;font-weight:700;margin-bottom:3px;}
-.sub{color:var(--muted);font-size:11px;margin-bottom:10px;}
-/* 2カラム化: 全カードがスクロールなしで収まるようにする（狭い画面では1カラムに戻す） */
-.ctrl{width:620px;flex-shrink:0;display:block;column-count:2;column-gap:10px;overflow-y:auto;height:100%;}
-.ctrl>*{break-inside:avoid;margin-bottom:8px;}
-@media (max-width:1100px){.ctrl{width:300px;column-count:1;}}
+body{background:var(--bg);color:var(--text);font-family:'Helvetica Neue',Arial,'Hiragino Sans',sans-serif;height:100vh;overflow:hidden;display:flex;gap:14px;padding:10px 14px;}
+h1{font-size:15px;font-weight:700;}
+.sub{color:var(--muted);font-size:10px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ctrl{width:300px;flex-shrink:0;display:flex;flex-direction:column;gap:5px;overflow-y:auto;height:100%;}
 .prev-area{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;overflow-y:auto;height:100%;}
-.card{background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:10px;display:flex;flex-direction:column;gap:6px;}
-.card h2{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);padding-bottom:5px;margin-bottom:1px;}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:7px 8px;display:flex;flex-direction:column;gap:5px;}
+.card h2{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);padding-bottom:3px;}
 .row{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
-input[type=text],input[type=date],textarea{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 9px;border-radius:4px;font-size:12px;font-family:inherit;box-sizing:border-box;}
+input[type=text],input[type=date],textarea{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:4px;font-size:12px;font-family:inherit;box-sizing:border-box;}
 input[type=text]{flex:1;}
-input[type=date]{color-scheme:dark;height:28px;line-height:normal;}
+input[type=date]{color-scheme:dark;height:23px;line-height:normal;}
 input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.7);cursor:pointer;}
 textarea{width:100%;resize:vertical;line-height:1.5;font-size:11px;}
-.btn{background:var(--accent);color:#fff;border:none;border-radius:5px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:5px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
 .btn:hover{opacity:.85;}
 .btn:disabled{opacity:.4;cursor:not-allowed;}
-.btn-sm{background:#1e3a5f;border:1px solid var(--border);color:var(--text);border-radius:4px;padding:5px 9px;font-size:11px;cursor:pointer;white-space:nowrap;}
+.btn-sm{background:#1e3a5f;border:1px solid var(--border);color:var(--text);border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;white-space:nowrap;}
 .btn-sm:hover{background:#2a4a7a;}
-.btn-danger{background:#3b1f1f;border:1px solid #7f1d1d;color:#fca5a5;border-radius:4px;padding:5px 9px;font-size:11px;cursor:pointer;}
-.btn-full{width:100%;padding:10px;font-size:13px;}
+.btn-danger{background:#3b1f1f;border:1px solid #7f1d1d;color:#fca5a5;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;}
+.btn-full{width:100%;padding:5px;font-size:12px;}
 .radio-group{display:flex;gap:8px;}
 .radio-group label{font-size:12px;cursor:pointer;display:flex;align-items:center;gap:3px;}
 .prev-area{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
@@ -43,9 +40,9 @@ textarea{width:100%;resize:vertical;line-height:1.5;font-size:11px;}
 .prev-slide::after{content:'⬇ DL';position:absolute;bottom:0;left:0;right:0;background:rgba(59,130,246,.85);color:#fff;font-size:10px;text-align:center;padding:2px 0;opacity:0;transition:opacity .15s;}
 .prev-slide:hover{border-color:var(--accent);}
 .prev-slide:hover::after{opacity:1;}
-#status{font-size:11px;color:var(--muted);min-height:16px;}
+#status{font-size:11px;color:var(--muted);}
 .fmt{background:#0a1628;border:1px solid var(--border);border-radius:4px;padding:8px;font-size:10px;color:var(--muted);font-family:monospace;white-space:pre;overflow-x:auto;max-height:180px;overflow-y:auto;}
-details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:3px;}
+details summary{cursor:pointer;color:var(--accent);font-size:11px;}
 #mob-prev{margin-top:6px;display:none;background:var(--panel);padding:8px;border-radius:7px;border:1px solid var(--border);}
 #mob-img{max-width:100%;border-radius:3px;}
 
@@ -219,26 +216,28 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:
 
   <div class="card">
     <h2>1. 基本情報</h2>
-    <div class="row">
+    <div class="row" style="flex-wrap:nowrap;justify-content:space-between;">
       <div class="radio-group">
         <label style="font-size:11px;color:var(--muted);">市場:</label>
         <label><input type="radio" name="mkt" value="jp" checked> JP</label>
         <label><input type="radio" name="mkt" value="us"> US</label>
       </div>
-    </div>
-    <div class="row" style="flex-wrap:nowrap;">
-      <input type="text" id="inp-ticker" placeholder="コード (例: 6966)" style="flex:0 0 90px;min-width:0;">
-      <input type="text" id="inp-name" placeholder="銘柄名 (例: 三井ハイテック)" style="min-width:0;">
-    </div>
-    <button class="btn btn-full" id="fetch-btn" onclick="fetchStock(this)">📥 株探から自動取得</button>
-    <div id="fetch-info" style="font-size:10px;color:var(--muted);white-space:pre-wrap;"></div>
-    <div class="row">
       <div class="radio-group">
         <label style="font-size:11px;color:var(--muted);">方向:</label>
         <label><input type="radio" name="dir" value="down" checked> 下落</label>
         <label><input type="radio" name="dir" value="up"> 上昇</label>
       </div>
     </div>
+    <div class="row" style="flex-wrap:nowrap;">
+      <input type="text" id="inp-ticker" placeholder="コード (例: 6966)" style="flex:0 0 90px;min-width:0;">
+      <input type="text" id="inp-name" placeholder="銘柄名 (例: 三井ハイテック)" style="min-width:0;">
+    </div>
+    <div class="row" style="flex-wrap:nowrap;">
+      <button class="btn" id="fetch-btn" onclick="fetchStock(this)" style="flex:1;min-width:0;">📥 株探から自動取得</button>
+      <button class="btn-sm" onclick="openKabutan()">🔍 株探</button>
+      <button class="btn-sm" onclick="openIR()">🔍 IR</button>
+    </div>
+    <div id="fetch-info" style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:none;"></div>
     <div class="row" style="gap:4px;flex-wrap:nowrap;">
       <input type="date" id="inp-base-date" title="基準日" style="flex:1;min-width:0;">
       <input type="text" id="inp-base-price" placeholder="基準株価" style="flex:0 0 90px;min-width:0;">
@@ -249,23 +248,17 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:
       <button class="btn-sm" onclick="convertPeriod()">→ 変換</button>
     </div>
     <input type="text" id="inp-period" placeholder="期間 (例: 2022年3月の最高値から71% / 5ヶ月で63%)">
-    <div class="row">
-      <button class="btn-sm" onclick="openKabutan()">🔍 株探</button>
-      <button class="btn-sm" onclick="openIR()">🔍 IR検索</button>
-    </div>
   </div>
 
   <div class="card">
     <h2>2. ChatGPT 分析プロンプト生成</h2>
-    <button class="btn btn-full" onclick="copyAnalysis(this)">💬 ① 分析プロンプトをコピー</button>
-    <div class="row">
-      <button class="btn-sm" onclick="copyFactCheck(this)" style="flex:1;">✅ ② ファクトチェック</button>
-      <button class="btn-sm" onclick="copyCorrection(this)" style="flex:1;">🔧 ③ 修正指示</button>
+    <div class="row" style="flex-wrap:nowrap;">
+      <button class="btn" onclick="copyAnalysis(this)" style="flex:1.3;min-width:0;padding:5px 6px;">💬 ①分析</button>
+      <button class="btn-sm" onclick="copyFactCheck(this)" style="flex:1;min-width:0;">✅ ②ファクト</button>
+      <button class="btn-sm" onclick="copyCorrection(this)" style="flex:1;min-width:0;">🔧 ③修正</button>
     </div>
-    <div style="font-size:10px;color:var(--muted);">②③を誤りがなくなるまで繰り返す</div>
-    <div style="font-size:10px;color:var(--muted);">ChatGPTで実行 → 出力を下に貼付</div>
-    <textarea id="ta-report" placeholder="ChatGPTのレポートをここに貼り付け" style="min-height:56px;"></textarea>
-    <div class="row">
+    <textarea id="ta-report" placeholder="ChatGPTのレポートをここに貼り付け（②③を誤りがなくなるまで繰り返す）" style="min-height:36px;"></textarea>
+    <div class="row" style="flex-wrap:nowrap;">
       <button class="btn-sm" onclick="pasteReport()" style="flex:1;">📋 貼り付け</button>
       <button class="btn-danger" onclick="clearReport()" style="flex:1;">✕ クリア</button>
     </div>
@@ -273,12 +266,11 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;margin-bottom:
 
   <div class="card">
     <h2>3. NotebookLM プロンプト生成</h2>
-    <div style="font-size:10px;color:var(--muted);">① まずNotebookLMのソースに追加（URL または 取得データ）:</div>
-    <div class="row" style="margin-bottom:6px;">
-      <button class="btn-sm" onclick="copyKabutanUrl(this)">📋 株探URLをコピー</button>
-      <button class="btn-sm" onclick="copySourceData(this)">📄 取得データをコピー</button>
+    <div style="font-size:10px;color:var(--muted);">①ソースにURL/取得データと確認済みレポートを追加 → ②実行:</div>
+    <div class="row" style="flex-wrap:nowrap;">
+      <button class="btn-sm" onclick="copyKabutanUrl(this)" style="flex:1;min-width:0;">📋 株探URL</button>
+      <button class="btn-sm" onclick="copySourceData(this)" style="flex:1;min-width:0;">📄 取得データ</button>
     </div>
-    <div style="font-size:10px;color:var(--muted);">② 確認済みレポートを読み込ませ、プロンプトを実行:</div>
     <button class="btn btn-full" onclick="copyNBPrompt(this)">📓 NotebookLMプロンプトをコピー</button>
     <details>
       <summary>入力フォーマットを確認する</summary>
@@ -337,12 +329,12 @@ FCF|マイナス|黒字化|営業CFが投資CFを上回る状態
   </div>
 
   <div class="card">
-    <h2>4. スライドデータ入力</h2>
-    <div class="row">
+    <div class="row" style="flex-wrap:nowrap;align-items:center;">
+      <h2 style="flex:1;border-bottom:none;padding-bottom:0;">4. スライドデータ入力</h2>
       <button class="btn-sm" onclick="pasteClip()">📋 貼り付け</button>
       <button class="btn-danger" onclick="clearData()">✕ クリア</button>
     </div>
-    <textarea id="ta-data" placeholder="NotebookLMの出力をここに貼り付け" style="min-height:64px;" oninput="debouncedPrev()"></textarea>
+    <textarea id="ta-data" placeholder="NotebookLMの出力をここに貼り付け" style="min-height:40px;" oninput="debouncedPrev()"></textarea>
   </div>
 
   <button class="btn btn-full" id="dl-btn" onclick="downloadAll()">⬇ 全スライドをZIPでダウンロード</button>
@@ -718,8 +710,10 @@ async function fetchStock(btn){
     applyBaseFromDir();
     // 指標サマリを表示
     const w52=calc52w(d);
-    document.getElementById('fetch-info').textContent=
-      `PER:${d.per||'-'} PBR:${d.pbr||'-'} 利回り:${d.yield||'-'}\n時価総額:${d.marketCap||'-'} 52週:${w52||'-'}`;
+    const infoEl=document.getElementById('fetch-info');
+    infoEl.textContent=`PER:${d.per||'-'} PBR:${d.pbr||'-'} 配当:${d.yield||'-'} ${d.marketCap||'-'} 52週:${w52||'-'}`;
+    infoEl.title=`PER:${d.per||'-'}　PBR:${d.pbr||'-'}　利回り:${d.yield||'-'}\n時価総額:${d.marketCap||'-'}　52週:${w52||'-'}`;
+    infoEl.style.display='block';
     btn.textContent='✔ 取得完了';
     setTimeout(()=>{btn.disabled=false;btn.textContent=label;},1500);
   }catch(e){
