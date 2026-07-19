@@ -756,8 +756,8 @@ async function geminiFormatStock(btnEl){
   let chartOverride='';
   if(months>0){
     // 期間はツール側で既に絞って渡しているので、Geminiには本数・月数を指示せず
-    // 「渡された全期間を省略せず出力せよ」とだけ指示する（余計な間引きを防ぐ）
-    chartOverride=`\n\n## チャート出力の指示（ルール3より優先・厳守）\n[チャート]は、渡された株探データにある日足の「全期間」を週足に変換して出力すること。最も古い日付の週から最も新しい日付の週まで、途中を間引いたり古い期間を省略したりせず、渡されたデータの全期間をそのまま反映すること。「約1年分・52本」等の本数上限は一切適用しないこと。`;
+    // 「渡された全期間を日足のまま省略せず出力せよ」とだけ指示する（変換や間引きを防ぐ）
+    chartOverride=`\n\n## チャート出力の指示（ルール3より優先・厳守）\n[チャート]は、渡された株探データの日足を「そのまま（日足のまま）」出力すること。週足への変換はしない。最も古い日付から最も新しい日付まで、途中を間引いたり古い期間を省略したりせず、渡されたデータの全期間をすべて含めること。「週足で出力」「約1年分・52本」等の指示・本数上限は、この期間指定時には適用しないこと。`;
   }
   const o=btnEl?btnEl.textContent:'';
   if(btnEl){btnEl.disabled=true;btnEl.textContent='整形中…';}
@@ -892,6 +892,17 @@ function trimChartByMonths(chartData,months){
   if(isNaN(latest))return chartData;
   const cutoff=new Date(latest);cutoff.setMonth(cutoff.getMonth()-mm);
   return rows.filter(r=>{const d=new Date(r.split(',')[0]);return !isNaN(d)&&d>=cutoff;}).join(';');
+}
+
+// チャート行の日付間隔から「日足/週足」を判定する。
+// 連続する日付の間隔の中央値が5日以上なら週足、未満なら日足。
+function chartGranularityLabel(chartLines){
+  const dates=(chartLines||[]).map(l=>new Date(String(l).split(',')[0])).filter(d=>!isNaN(d)).sort((a,b)=>a-b);
+  if(dates.length<2)return '日足';
+  const gaps=[];for(let i=1;i<dates.length;i++)gaps.push((dates[i]-dates[i-1])/86400000);
+  gaps.sort((a,b)=>a-b);
+  const median=gaps[Math.floor(gaps.length/2)];
+  return median>=5?'週足':'日足';
 }
 
 // チャート行（"YYYY-MM-DD,..."）の最古〜最新から期間ラベルを作る。
@@ -1079,6 +1090,7 @@ function buildS1(d){
   const changeColor=isDown?'#dc2626':'#16a34a';
   const chartId='cv1_'+Math.random().toString(36).slice(2);
   const chartPeriod=chartPeriodLabel(chartLines);
+  const chartGran=chartGranularityLabel(chartLines);
 
   const factorsHtml=factors.map(f=>`<div class="s1-factor"><span class="s1-fbullet">◆</span>${esc(trimDot(f))}</div>`).join('');
   const swIcon=(tag,items)=>items.map(s=>`<div class="s1-sw-item"><span class="s1-sw-bullet">${tag}</span>${esc(trimDot(s))}</div>`).join('');
@@ -1109,7 +1121,7 @@ function buildS1(d){
     </div>
     <div class="s1-metrics-card">${metricsHtml}</div>
     <div class="s1-chart-card">
-      <div class="s1-chart-lbl">週足チャート（${chartPeriod}）</div>
+      <div class="s1-chart-lbl">${chartGran}チャート（${chartPeriod}）</div>
       <canvas id="${chartId}" class="s1-chart-canvas" data-chart="${esc(chartLines.join(';'))}"></canvas>
     </div>
   </div>
