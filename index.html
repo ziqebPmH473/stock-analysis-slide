@@ -1949,6 +1949,14 @@ async function downloadThumb(){
   btn.disabled=false;
 }
 
+// Geminiのモデル・チャート期間の選択をlocalStorageで保持（リロードで引き継ぐ）
+(function(){
+  const KEYS=['gem-model','gem-months','gem-article-model'];
+  const save=()=>{try{const o={};KEYS.forEach(id=>{const el=document.getElementById(id);if(el)o[id]=el.value;});localStorage.setItem('sasGemPrefs',JSON.stringify(o));}catch(e){}};
+  try{const o=JSON.parse(localStorage.getItem('sasGemPrefs')||'null');if(o)KEYS.forEach(id=>{const el=document.getElementById(id);if(el&&(id in o))el.value=o[id];});}catch(e){}
+  KEYS.forEach(id=>{const el=document.getElementById(id);if(el){el.addEventListener('change',save);el.addEventListener('input',save);}});
+})();
+
 // 初期プレビュー（フォントロード後）
 document.fonts.ready.then(()=>{if(document.getElementById('th-input').value.trim())renderThumbPreview();});
 </script>
