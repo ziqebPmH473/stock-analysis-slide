@@ -1,3 +1,6 @@
 # wrangler pages dev のローカル一時ファイル（.wrangler/cache は追跡対象のまま）
 .wrangler/state/
 .wrangler/tmp/
+
+# ローカルのGemini APIキー（.dev.vars.example はコミットするが .dev.vars は除外）
+.dev.vars

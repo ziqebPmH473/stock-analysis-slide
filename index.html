@@ -272,6 +272,24 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;}
       <button class="btn-sm" onclick="copySourceData(this)" style="flex:1;min-width:0;">📄 取得データ</button>
     </div>
     <button class="btn btn-full" onclick="copyNBPrompt(this)">📓 NotebookLMプロンプトをコピー</button>
+    <div class="row" style="flex-wrap:nowrap;gap:4px;align-items:center;margin-top:6px;">
+      <label style="font-size:11px;color:var(--muted);flex:none;">モデル</label>
+      <select id="gem-model" style="flex:1;min-width:0;font-size:11px;padding:4px;">
+        <option value="" >自動（上位から上限で自動降格）</option>
+        <option value="gemini-3.5-flash">Gemini 3.5 Flash（20回/日）</option>
+        <option value="gemini-3-flash-preview">Gemini 3 Flash（20回/日）</option>
+        <option value="gemini-3.1-flash-lite" selected>Gemini 3.1 Flash Lite（500回/日）</option>
+        <option value="gemini-2.5-flash">Gemini 2.5 Flash（20回/日）</option>
+        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite（20回/日）</option>
+      </select>
+    </div>
+    <div class="row" style="flex-wrap:nowrap;gap:4px;align-items:center;margin-top:4px;">
+      <label style="font-size:11px;color:var(--muted);flex:none;">チャート期間</label>
+      <input type="number" id="gem-months" min="1" placeholder="全期間" style="width:60px;flex:none;font-size:11px;padding:4px;">
+      <span style="font-size:11px;color:var(--muted);">ヶ月（空欄=全期間）</span>
+    </div>
+    <button class="btn btn-full" onclick="geminiFormatStock(this)" style="background:#4f46e5;color:#fff;margin-top:6px;">📤 出力データ作成（Gemini）</button>
+    <div id="gem-status" style="display:none;font-size:11px;margin-top:3px;"></div>
     <details>
       <summary>入力フォーマットを確認する</summary>
       <pre class="fmt">[銘柄情報]
@@ -682,6 +700,65 @@ function copyFactCheck(btn){
 }
 function copyCorrection(btn){copyText('指摘箇所を指示の内容に沿って修正し、全文出力してください。\nただし、指摘していない箇所は一切変更しないでください。',btn);}
 function copyNBPrompt(btn){copyText(NB_PROMPT,btn);}
+
+// ============================================================
+// Gemini API 整形（NotebookLM工程の置き換え。NotebookLMボタンは併存）
+// ・/api/analyze（CF Pages Function）経由でサーバー側からGeminiを呼ぶ
+// ・モデルは kessan-tool / stock-slide-generator と同じ優先チェーン
+// ============================================================
+function autoModelChain(cls,ov){
+  if(ov)return[ov];
+  return cls==='high'
+    ?['gemini-3.5-flash','gemini-3-flash-preview','gemini-3.1-flash-lite','gemini-2.5-flash']
+    :['gemini-3.1-flash-lite','gemini-3-flash-preview','gemini-2.5-flash-lite','gemini-2.5-flash'];
+}
+// 整形パス専用のグラウンディング強化（NotebookLMのRAG的な"ソース限定"に寄せる）
+const GROUNDING_RULE='\n\n## グラウンディング（最重要・厳守）\n出力は、渡された資料（株探取得データ・分析レポート）に明示されている情報だけを根拠にすること。資料に無い数値・事実は、推測や一般知識で補わず空欄にすること。資料外の情報を創作してはならない。';
+
+function setGemStatus(msg,kind){
+  const el=document.getElementById('gem-status');if(!el)return;
+  el.textContent=msg||'';el.style.display=msg?'block':'none';
+  el.style.color=kind==='error'?'#ef4444':kind==='ok'?'#16a34a':'var(--muted)';
+}
+function tokenNote(usage){
+  if(!usage||!usage.totalTokenCount)return'';
+  const inPart=usage.promptTokenCount?`入力${Number(usage.promptTokenCount).toLocaleString()}／`:'';
+  return ` / ${inPart}計${Number(usage.totalTokenCount).toLocaleString()}トークン`;
+}
+async function callGeminiAnalyze(prompt,resources,opts){
+  opts=opts||{};
+  try{
+    const res=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt,resources:resources||[],temperature:typeof opts.temperature==='number'?opts.temperature:0.2,models:autoModelChain(opts.cls||'low',opts.modelOverride||'')})});
+    const data=await res.json();
+    if(!res.ok||!data.ok)return{ok:false,error:(data&&data.error)||`HTTP ${res.status}`};
+    return{ok:true,text:data.text||'',model:data.model,fellBack:data.fellBack,usage:data.usage||null};
+  }catch(e){return{ok:false,error:(e&&e.message)?e.message:String(e)};}
+}
+// 株価分析：Geminiで整形 → #ta-data に投入して描画（NotebookLM出力の代わり）
+async function geminiFormatStock(btnEl){
+  const src=getSourceText();
+  const report=(document.getElementById('ta-report').value||'').trim();
+  const miss=[];
+  if(src==null)miss.push('株探の取得データ（📥 自動取得）');
+  if(!report)miss.push('分析レポート（ChatGPTレポート欄）');
+  if(miss.length){alert('整形には次が必要です：\n・'+miss.join('\n・'));return;}
+  const resources=[
+    {label:'株探 取得データ',text:src},
+    {label:'分析レポート（ファクトチェック済み）',text:report}
+  ];
+  const ov=(document.getElementById('gem-model')||{}).value||'';
+  const o=btnEl?btnEl.textContent:'';
+  if(btnEl){btnEl.disabled=true;btnEl.textContent='整形中…';}
+  setGemStatus('Geminiで整形中…','info');
+  const r=await callGeminiAnalyze(NB_PROMPT+GROUNDING_RULE,resources,{cls:'low',temperature:0.2,modelOverride:ov});
+  if(btnEl){btnEl.disabled=false;btnEl.textContent=o;}
+  if(!r.ok){setGemStatus('エラー: '+r.error,'error');return;}
+  document.getElementById('ta-data').value=r.text;
+  renderPrev();
+  setGemStatus(`整形完了（${r.model||'gemini'}${r.fellBack?'・降格':''}${tokenNote(r.usage)}）`,'ok');
+}
+
 // ============================================================
 // 株探 自動取得（CF Pages Function: /api/fetch-stock）
 // ============================================================
@@ -793,9 +870,22 @@ function calc52w(d){
   return isUSCode(d.code)?`$${fmt(lo)}〜$${fmt(hi)}`:`${fmt(lo)}〜${fmt(hi)}円`;
 }
 // NotebookLMのソースに読み込ませる取得データ一式（基本情報＋株価＋日足時系列）
-function copySourceData(btn){
+// 日足チャート文字列を直近 months ヶ月に絞る（未指定/0/不正なら全期間）。基準は最新行の日付。
+function trimChartByMonths(chartData,months){
+  const mm=parseInt(months,10);
+  if(!chartData||!mm||mm<=0)return chartData;
+  const rows=chartData.split(';').filter(Boolean);
+  const dates=rows.map(r=>r.split(',')[0]).filter(Boolean).sort();
+  if(!dates.length)return chartData;
+  const latest=new Date(dates[dates.length-1]);
+  if(isNaN(latest))return chartData;
+  const cutoff=new Date(latest);cutoff.setMonth(cutoff.getMonth()-mm);
+  return rows.filter(r=>{const d=new Date(r.split(',')[0]);return !isNaN(d)&&d>=cutoff;}).join(';');
+}
+
+function getSourceText(){
   const f=window._fetched;
-  if(!f){alert('先に「📥 株探から自動取得」でデータを取得してください');return;}
+  if(!f)return null;
   const code=getTicker(),m=getMkt();
   const L=[];
   L.push(`【株探 取得データ${f.name?'：'+f.name:''}${code?'（'+code+'）':''}】`);
@@ -820,9 +910,18 @@ function copySourceData(btn){
   if(f.high&&f.high.price)L.push(`（参考）取得範囲内の高値：${f.high.price}（${f.high.date}）`);
   if(f.low&&f.low.price)L.push(`（参考）取得範囲内の安値：${f.low.price}（${f.low.date}）`);
   L.push('');
-  L.push('■ 日足（時系列）  列：日付,始値,高値,安値,終値,出来高');
-  if(f.chartData)L.push(f.chartData.split(';').filter(Boolean).join('\n'));
-  copyText(L.join('\n'),btn);
+  const months=(document.getElementById('gem-months')||{}).value||'';
+  const periodNote=(parseInt(months,10)>0)?`（直近${parseInt(months,10)}ヶ月）`:'';
+  L.push(`■ 日足（時系列）${periodNote}  列：日付,始値,高値,安値,終値,出来高`);
+  const chart=trimChartByMonths(f.chartData,months);
+  if(chart)L.push(chart.split(';').filter(Boolean).join('\n'));
+  return L.join('\n');
+}
+
+function copySourceData(btn){
+  const t=getSourceText();
+  if(t==null){alert('先に「📥 株探から自動取得」でデータを取得してください');return;}
+  copyText(t,btn);
 }
 
 function copyKabutanUrl(btn){
