@@ -755,8 +755,9 @@ async function geminiFormatStock(btnEl){
   const months=parseInt((document.getElementById('gem-months')||{}).value,10);
   let chartOverride='';
   if(months>0){
-    const bars=Math.max(4,Math.round(months*4.33));
-    chartOverride=`\n\n## チャート期間の指定（ルール3より優先・厳守）\n[チャート]は、渡された株探データにある日足の全期間（直近${months}ヶ月分）を週足に変換し、最古週から最新週まで欠かさず出力すること。約${bars}本になるはずです。ルール3の「約1年分・52本」ではなく、この${months}ヶ月ぶんを優先し、本数を勝手に減らさないこと。`;
+    // 期間はツール側で既に絞って渡しているので、Geminiには本数・月数を指示せず
+    // 「渡された全期間を省略せず出力せよ」とだけ指示する（余計な間引きを防ぐ）
+    chartOverride=`\n\n## チャート出力の指示（ルール3より優先・厳守）\n[チャート]は、渡された株探データにある日足の「全期間」を週足に変換して出力すること。最も古い日付の週から最も新しい日付の週まで、途中を間引いたり古い期間を省略したりせず、渡されたデータの全期間をそのまま反映すること。「約1年分・52本」等の本数上限は一切適用しないこと。`;
   }
   const o=btnEl?btnEl.textContent:'';
   if(btnEl){btnEl.disabled=true;btnEl.textContent='整形中…';}
