@@ -1474,16 +1474,15 @@ function drawChart(canvas,lines){
     ctx.fillText(p.toLocaleString(),pL+cw+3,y);
   });
 
-  // X軸ラベル: 最初はyyyy/m、年が変わるときもyyyy/m、それ以外はm
+  // X軸ラベル: 月が変わる最初の週にだけ「N月」を表示（同じ月の重複表示を避ける）
   const sX=cw/data.length;
   ctx.fillStyle='#94a3b8';ctx.font='10px Arial';ctx.textAlign='center';ctx.textBaseline='top';
-  // 最初と最後、およそ6本ごとに表示
-  const step_x=Math.max(1,Math.round(data.length/6));
+  let prevMoKey=null;
   data.forEach((d,i)=>{
-    const showTick=(i===0)||(i===data.length-1)||(i%step_x===0);
-    if(!showTick)return;
-    const lbl=`${d.mo}月`;
-    ctx.fillText(lbl,pL+i*sX+sX/2,pT+ch+4);
+    const key=d.yr*100+d.mo;
+    if(key===prevMoKey)return;   // 同じ月はスキップ
+    prevMoKey=key;
+    ctx.fillText(`${d.mo}月`,pL+i*sX+sX/2,pT+ch+4);
   });
 
   data.forEach((d,i)=>{
