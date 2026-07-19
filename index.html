@@ -885,6 +885,19 @@ function trimChartByMonths(chartData,months){
   return rows.filter(r=>{const d=new Date(r.split(',')[0]);return !isNaN(d)&&d>=cutoff;}).join(';');
 }
 
+// チャート行（"YYYY-MM-DD,..."）の最古〜最新から期間ラベルを作る。
+// 1年未満は「直近〇ヶ月」、1年以上は「直近〇年」。行が足りなければ「直近1年」。
+function chartPeriodLabel(chartLines){
+  const dates=(chartLines||[]).map(l=>new Date(String(l).split(',')[0])).filter(d=>!isNaN(d));
+  if(dates.length<2)return '直近1年';
+  const min=new Date(Math.min.apply(null,dates)),max=new Date(Math.max.apply(null,dates));
+  let months=(max.getFullYear()-min.getFullYear())*12+(max.getMonth()-min.getMonth());
+  if(max.getDate()-min.getDate()>=15)months+=1;   // 端数の日数を四捨五入
+  if(months<1)months=1;
+  if(months<12)return `直近${months}ヶ月`;
+  return `直近${Math.round(months/12)}年`;
+}
+
 function getSourceText(){
   const f=window._fetched;
   if(!f)return null;
@@ -1056,6 +1069,7 @@ function buildS1(d){
   const isDown=st.direction==='下落';
   const changeColor=isDown?'#dc2626':'#16a34a';
   const chartId='cv1_'+Math.random().toString(36).slice(2);
+  const chartPeriod=chartPeriodLabel(chartLines);
 
   const factorsHtml=factors.map(f=>`<div class="s1-factor"><span class="s1-fbullet">◆</span>${esc(trimDot(f))}</div>`).join('');
   const swIcon=(tag,items)=>items.map(s=>`<div class="s1-sw-item"><span class="s1-sw-bullet">${tag}</span>${esc(trimDot(s))}</div>`).join('');
@@ -1086,7 +1100,7 @@ function buildS1(d){
     </div>
     <div class="s1-metrics-card">${metricsHtml}</div>
     <div class="s1-chart-card">
-      <div class="s1-chart-lbl">週足チャート（直近1年）　売買高</div>
+      <div class="s1-chart-lbl">週足チャート（${chartPeriod}）　売買高</div>
       <canvas id="${chartId}" class="s1-chart-canvas" data-chart="${esc(chartLines.join(';'))}"></canvas>
     </div>
   </div>
