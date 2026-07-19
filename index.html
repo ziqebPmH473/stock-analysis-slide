@@ -209,6 +209,88 @@ details summary{cursor:pointer;color:var(--accent);font-size:11px;}
 </style>
 </head>
 <body>
+<script type="text/plain" id="gem-article-prompt">あなたは「論理的で客観的な視点を持ちつつ、初心者にも寄り添って分かりやすく解説する親切な投資のナビゲーター」です。
+ユーザーから提供される【株価分析レポート（上昇または下落）】を根拠資料とし、情報を一切削らず、かつ「冗長にならない簡潔な表現」で、以下の5つのブロックに出力してください。
+
+【出力形式（重要：必ず5つのブロックに分ける）】
+1. 【タイトル】：記事の魅力を凝縮し、クリックしたくなる短いタイトル案（32文字以内）をテキスト用コードブロックで囲む。
+   - 構造：冒頭に必ず「【銘柄名（証券コード）】〇ヶ月で〇％下落！」と、銘柄名と状況がわかるように記述すること。汎用的な定型文（例：「〜の状況下で、〜を知る」など）への当てはめは禁止。
+   - 銘柄の固有性（絶対条件）：他の銘柄にも使い回せるような表現（「大暴落」「本当の底値」のみで構成するなど）は避け、必ず「その企業特有の事業内容、主力製品、具体的な悪材料/好材料、またはMoat」を示す具体的なキーワードを1つ以上タイトルに組み込むこと。
+   - 厳守事項：「増益で株価上昇」といった視聴者が納得して好奇心が停止する順当な結論は厳禁。固有の文脈に基づくギャップや、「〇〇事業の不振はどこまで織り込まれたか？」といった具体的な疑問を生み出すこと。
+
+2. 【本　文】：後述の【株価分析特化：構成フォーマット】に従い、Markdown用コードブロックで囲む。
+
+3. 【Gamma用スライド構成指示】：本文中のスライド画像挿入の指定に対応する、Gamma用のプロンプトをテキスト用コードブロックで出力する。
+   - 以下の定型文を冒頭に配置し、その下に各スライドの構成を続けること。
+
+   【出力フォーマット】
+   note記事に使用するスライド資料を、以下の構成で作成してください。
+
+   ▼スライド1
+   ・タイトル：（スライド用に最適化した短いタイトル）
+   ・記載内容：（盛り込むべき要素の概要を箇条書きで2〜3点）
+   ・ビジュアル指示：（例：〇〇の比較表、左右の2軸配置、フロー図など、具体的な図解・レイアウトの指示）
+   （※以降、指定したスライドの枚数分繰り返す）
+
+4. 【サムネ構成案】：有料購入を促す魅力的な見出し画像（サムネイル）の構成案をテキスト用コードブロックで提案する。
+   - テキスト構成（必ず以下の文字数と役割を守ること）：
+     ・上段（感情・問題提起）：全角8〜10文字
+     ・中段（銘柄名やメインテーマ）：全角6〜9文字
+     ・下段（抽象的な焦点・問いかけ）：全角8〜10文字
+   - 背景イメージ：上記テキストに合う視覚的イメージや背景・アイコンの提案を簡潔に1文で添える。
+
+5. 【ハッシュタグ】：note用タグ5〜7個をテキスト用コードブロックで囲む。
+
+6. 【X（旧Twitter）告知文】：140文字以内で作成し、テキスト用コードブロックで囲む。
+   - 内容：記事の核心的な「問いかけ」や「注目ポイント（ギャップ）」を基に、Xからのトラフィックを最大化する文章にする。結論（目標株価など）の記載は厳禁。冒頭は「【 #銘柄名（証券コード）｜〇ヶ月で〇％下落】」の形式で始めること
+   - フォーマット：絵文字を交えつつ「空行なし（詰め）」で構成する。段落分けのための連続改行（空白行の作成）は禁止。ハッシュタグも本文直後の行に空行を挟まず配置すること。
+
+【ペルソナと執筆ルール】
+1. フックの原則：タイトル・サムネ・X告知文では、難解な財務・専門用語をそのまま使わず、平易で感情に訴えかける言葉に変換してフックとすること。
+2. 情報の網羅（絶対条件）：元のレポートに記載されている「上昇/下落の要因」「競争優位性（Moat）」「中間安値/高値レンジ（下値/上値余地）とその変化率」「12か月後シナリオ」「転換点のモノサシ」「リスク」は絶対に削除せず全て網羅してください。
+3. 予測の分離：「中間安値/高値レンジ（3〜9ヶ月）」と「12か月後シナリオ」は絶対に混同せず、記事内でも明確に分けて解説すること。
+4. 語尾とテンポ：「〜です・ます」の3回連続を禁じます。「〜ですよね」「〜というわけです」等を混ぜ、テンポよく読ませてください。
+5. 専門用語の扱い：「Moat」や「コンセンサス」などの投資用語に対する「〜とは」といった基本的な意味の解説は一切不要です。用語はそのまま使用し、読者がすでに知っている前提で分析結果の解説に集中してください。
+6. プロ感の排除：「プロの目線で」といった権威付けや不自然なアピール表現は禁止。フラットで親切な「案内人」として振る舞ってください。
+7. スライド挿入の目印：各大見出し（##）の最後に、必ず各章につき1つずつ [ここに「〇〇」のスライド画像を挿入] と出力してください（〇〇にはその章の内容を要約した短い文言を入れること）。
+8. 情報の配置（有料化への配慮）：前半は「事実の整理（現状なぜ動いているのか）」に留め、「具体的な上値/下値予測」「転換点のモノサシ」「リスクシナリオ」といった投資判断に直結する高価値な情報は、絶対に後半に温存・集中させてください。
+9. YouTube動画の条件付き連携：ユーザーからの提供情報に「YouTube動画のURL」や「動画あり」の指定が含まれている場合のみ、本文の冒頭と末尾に動画への誘導文を配置してください。
+10. 表形式（テーブル）の禁止：noteでは表が描画できないため、比較やデータの提示にMarkdownの表（|---|）は絶対に使用しないでください。数値や条件の整理が必要な場合は、箇条書き（リスト形式）を活用し、テキスト表現で完結させてください。
+11. 強調表現の戦略的活用と不具合防止：読者がスマホで斜め読みしても要点が伝わるよう、本文中の「重要な数値」「投資判断の結論」「警戒すべきリスク」は、必ずMarkdownの太字（**〇〇**）を用いて強調すること（1章につき2〜3箇所目安）。※noteへの転記時に不具合が起きないよう、太字にする際は ** と文字の間にスペースを絶対に入れないこと（例：**強調** はOK、** 強調 ** はNG）。
+12. 評価基準の統一：銘柄の評価や分析を記述する際は、他社との相対的な比較（相対評価）ではなく、その企業単体の基準に基づく絶対評価として記載してください。
+
+【株価分析特化：構成フォーマット（本文のコードブロック内）】
+※提供された分析レポート（上昇・下落）の情報を漏らさず、読者が最も論理的に理解できる以下の構成で執筆してください。見出しの文言は銘柄や状況に合わせて微調整可能です。
+
+（導入：対象銘柄の現在の状況（大上昇中、または大暴落中など）と、この記事を読むことで「買い時・売り時の目安」が分かるというベネフィットを提示）
+（※AIへの指示：動画指定がある場合のみ [ここに冒頭のYouTube動画リンクを配置]）
+
+## 1. 【現状の整理】なぜ今、株価は動いているのか？
+（レポートの「1. 企業の基本情報」と「2. 現状分析」を基に、現在の株価の立ち位置と、足元の変動要因、そして企業の本質的価値（Moatや経営力）について簡潔に整理する）
+[ここに「〇〇」のスライド画像を挿入]
+
+## 2. 【短期〜中期の株価予測】どこまで動く可能性があるか？
+（レポートの「3. 将来予測」のうち、「市場コンセンサス」と「上値余地/下値余地（3〜9ヶ月の一時的なレンジ）」を解説する。3つのシナリオと変化率を分かりやすく提示し、特に重要な数値や方向性は太字で強調すること）
+[ここに「〇〇」のスライド画像を挿入]
+
+## 3. 【1年後の未来図】12か月後シナリオはどうなる？
+（第2章の短期予測とは「明確に切り離して」、レポートの「12か月後シナリオ」について解説する。長期目線での投資判断基準を提供する）
+[ここに「〇〇」のスライド画像を挿入]
+
+## 4. 【トレンド転換のサイン】見極めるべき「株価以外のモノサシ」
+（レポートの「転換点のモノサシ」を解説。天井や底打ちを判断するための具体的な数値や定量的な目安を、必ず太字にして初心者にも分かりやすく解説する）
+[ここに「〇〇」のスライド画像を挿入]
+
+## 5. 【想定リスク】投資家が注意すべきシナリオの崩れ
+（レポートの「4. シナリオとリスク」を解説。「買った後にさらに下落するリスク」「上昇トレンドが崩れるリスク」「12ヶ月後シナリオの下方修正リスク」など、損をしないための視点を強調する）
+[ここに「〇〇」のスライド画像を挿入]
+
+## まとめ：明日からの監視ポイントと具体アクション
+（ここまでの分析を踏まえ、「買いポイント/利確・損切りポイントの特定」に向けた具体的な行動指針を3〜4点の箇条書きで提示し、アクションの核となる部分は太字にする。記事の結論とする）
+（※AIへの指示：動画指定がある場合のみ末尾の動画誘導テキストを出力）
+
+---
+【システム用の出力指示（最優先・厳守）】各ブロックは必ず見出し「【タイトル】」「【本　文】」「【Gamma用スライド構成指示】」「【サムネ構成案】」「【ハッシュタグ】」「【X（旧Twitter）告知文】」を行頭に付けて出力し、その直後に内容を ``` で囲んだコードブロックで記載すること。</script>
 
 <div class="ctrl">
   <h1>📊 株価分析 スライド生成</h1>
@@ -355,6 +437,35 @@ FCF|マイナス|黒字化|営業CFが投資CFを上回る状態
       <button class="btn-danger" onclick="clearData()">✕ クリア</button>
     </div>
     <textarea id="ta-data" placeholder="NotebookLMの出力をここに貼り付け" style="min-height:40px;" oninput="debouncedPrev()"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>5. 記事・SNS生成（Gemini）</h2>
+    <div style="font-size:10px;color:var(--muted);">「2.」のChatGPTレポートから note記事本文・タイトル・タグ・X投稿文を生成します</div>
+    <div class="row" style="flex-wrap:nowrap;gap:4px;align-items:center;margin-top:6px;">
+      <label style="font-size:11px;color:var(--muted);flex:none;">モデル</label>
+      <select id="gem-article-model" style="flex:1;min-width:0;font-size:11px;padding:4px;">
+        <option value="" selected>自動（上位から上限で自動降格）</option>
+        <option value="gemini-3.5-flash">Gemini 3.5 Flash（20回/日）</option>
+        <option value="gemini-3-flash-preview">Gemini 3 Flash（20回/日）</option>
+        <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite（500回/日）</option>
+        <option value="gemini-2.5-flash">Gemini 2.5 Flash（20回/日）</option>
+      </select>
+    </div>
+    <button class="btn btn-full" onclick="geminiArticle(this)" style="background:#0d9488;color:#fff;margin-top:6px;">📝 記事・SNSを生成</button>
+    <div id="gem-article-status" style="display:none;font-size:11px;margin-top:3px;"></div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;"><label style="font-size:11px;color:var(--muted);">タイトル</label><button class="btn-sm" onclick="copyText(document.getElementById('art-title').value,this)">📋 コピー</button></div>
+    <textarea id="art-title" placeholder="生成後にタイトルが入ります" style="min-height:34px;"></textarea>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;"><label style="font-size:11px;color:var(--muted);">本文（note）</label><button class="btn-sm" onclick="copyText(document.getElementById('art-body').value,this)">📋 コピー</button></div>
+    <textarea id="art-body" placeholder="生成後にnote記事本文が入ります" style="min-height:130px;"></textarea>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;"><label style="font-size:11px;color:var(--muted);">サムネ構成</label><button class="btn-sm" onclick="copyText(document.getElementById('art-thumb').value,this)">📋 コピー</button></div>
+    <textarea id="art-thumb" placeholder="生成後にサムネ構成案が入ります" style="min-height:50px;"></textarea>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;"><label style="font-size:11px;color:var(--muted);">ハッシュタグ</label><button class="btn-sm" onclick="copyText(document.getElementById('art-tags').value,this)">📋 コピー</button></div>
+    <textarea id="art-tags" placeholder="生成後にハッシュタグが入ります" style="min-height:34px;"></textarea>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;"><label style="font-size:11px;color:var(--muted);">X投稿文</label><button class="btn-sm" onclick="copyText(document.getElementById('art-x').value,this)">📋 コピー</button></div>
+    <textarea id="art-x" placeholder="生成後にX投稿文が入ります" style="min-height:50px;"></textarea>
+    <details style="margin-top:6px;"><summary style="font-size:10px;color:var(--muted);cursor:pointer;">生成全文（うまく分割できない時のフォールバック）</summary><textarea id="art-raw" style="min-height:80px;"></textarea></details>
   </div>
 
   <button class="btn btn-full" id="dl-btn" onclick="downloadAll()">⬇ 全スライドをZIPでダウンロード</button>
@@ -768,6 +879,61 @@ async function geminiFormatStock(btnEl){
   document.getElementById('ta-data').value=r.text;
   renderPrev();
   setGemStatus(`整形完了（${r.model||'gemini'}${r.fellBack?'・降格':''}${tokenNote(r.usage)}）`,'ok');
+}
+
+// ============================================================
+// 記事・SNS生成（Gemルールをそのまま使用。入力はChatGPTレポートのみ）
+// ============================================================
+function setArtStatus(msg,kind){
+  const el=document.getElementById('gem-article-status');if(!el)return;
+  el.textContent=msg||'';el.style.display=msg?'block':'none';
+  el.style.color=kind==='error'?'#ef4444':kind==='ok'?'#16a34a':'var(--muted)';
+}
+
+// Gemini出力を「既知の見出し名」＋コードブロックで各ブロックに分解する。
+// ※タイトルやX告知文の本文中にも【銘柄名】等の【】が含まれるため、
+//   任意の【】ではなく、下記の既定ヘッダーだけを区切りとして扱う。
+function parseArticleOutput(text){
+  const defs=[
+    {key:'title',     re:/【\s*タイトル\s*】/},
+    {key:'body',      re:/【\s*本[\s　]*文\s*】/},
+    {key:'gamma',     re:/【\s*Gamma[^】]*】/},
+    {key:'thumbnail', re:/【\s*サムネ[^】]*】/},
+    {key:'hashtags',  re:/【\s*ハッシュタグ\s*】/},
+    {key:'xpost',     re:/【\s*X[^】]*告知文\s*】/}
+  ];
+  const found=defs.map(d=>{const m=text.match(d.re);return m?{key:d.key,idx:m.index,end:m.index+m[0].length}:null;}).filter(Boolean);
+  found.sort((a,b)=>a.idx-b.idx);
+  const out={};
+  for(let i=0;i<found.length;i++){
+    const chunk=text.slice(found[i].end,(i+1<found.length)?found[i+1].idx:text.length).trim();
+    const fence=chunk.match(/```[^\n]*\n([\s\S]*?)```/);
+    out[found[i].key]=(fence?fence[1]:chunk.replace(/```/g,'')).trim();
+  }
+  return{title:out.title||'',body:out.body||'',thumbnail:out.thumbnail||'',hashtags:out.hashtags||'',xpost:out.xpost||''};
+}
+
+async function geminiArticle(btnEl){
+  const report=(document.getElementById('ta-report').value||'').trim();
+  if(!report){alert('「2. ChatGPT分析」のレポートを貼り付けてください');return;}
+  const prompt=(document.getElementById('gem-article-prompt').textContent||'').trim();
+  const resources=[{label:'株価分析レポート',text:report}];
+  const ov=(document.getElementById('gem-article-model')||{}).value||'';
+  const o=btnEl?btnEl.textContent:'';
+  if(btnEl){btnEl.disabled=true;btnEl.textContent='生成中…';}
+  setArtStatus('Geminiで記事生成中…（30秒〜1分）','info');
+  const r=await callGeminiAnalyze(prompt,resources,{cls:'high',temperature:0.7,modelOverride:ov});
+  if(btnEl){btnEl.disabled=false;btnEl.textContent=o;}
+  if(!r.ok){setArtStatus('エラー: '+r.error,'error');return;}
+  const p=parseArticleOutput(r.text);
+  document.getElementById('art-title').value=p.title;
+  document.getElementById('art-body').value=p.body;
+  document.getElementById('art-thumb').value=p.thumbnail;
+  document.getElementById('art-tags').value=p.hashtags;
+  document.getElementById('art-x').value=p.xpost;
+  document.getElementById('art-raw').value=r.text;
+  const missing=[!p.title&&'タイトル',!p.body&&'本文',!p.xpost&&'X投稿文'].filter(Boolean);
+  setArtStatus(`生成完了（${r.model||'gemini'}${r.fellBack?'・降格':''}${tokenNote(r.usage)}）${missing.length?' ※'+missing.join('・')+'は全文から確認':''}`,missing.length?'info':'ok');
 }
 
 // ============================================================
