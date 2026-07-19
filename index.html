@@ -750,10 +750,18 @@ async function geminiFormatStock(btnEl){
     {label:'分析レポート（ファクトチェック済み）',text:report}
   ];
   const ov=(document.getElementById('gem-model')||{}).value||'';
+  // チャート期間を指定している場合、ルール3の「約1年分52本」を上書きし、
+  // 渡した期間ぶんの週足を欠かさず出力させる（データと画像の期間を一致させる）
+  const months=parseInt((document.getElementById('gem-months')||{}).value,10);
+  let chartOverride='';
+  if(months>0){
+    const bars=Math.max(4,Math.round(months*4.33));
+    chartOverride=`\n\n## チャート期間の指定（ルール3より優先・厳守）\n[チャート]は、渡された株探データにある日足の全期間（直近${months}ヶ月分）を週足に変換し、最古週から最新週まで欠かさず出力すること。約${bars}本になるはずです。ルール3の「約1年分・52本」ではなく、この${months}ヶ月ぶんを優先し、本数を勝手に減らさないこと。`;
+  }
   const o=btnEl?btnEl.textContent:'';
   if(btnEl){btnEl.disabled=true;btnEl.textContent='整形中…';}
   setGemStatus('Geminiで整形中…','info');
-  const r=await callGeminiAnalyze(NB_PROMPT+GROUNDING_RULE,resources,{cls:'low',temperature:0.2,modelOverride:ov});
+  const r=await callGeminiAnalyze(NB_PROMPT+chartOverride+GROUNDING_RULE,resources,{cls:'low',temperature:0.2,modelOverride:ov});
   if(btnEl){btnEl.disabled=false;btnEl.textContent=o;}
   if(!r.ok){setGemStatus('エラー: '+r.error,'error');return;}
   document.getElementById('ta-data').value=r.text;
@@ -1100,7 +1108,7 @@ function buildS1(d){
     </div>
     <div class="s1-metrics-card">${metricsHtml}</div>
     <div class="s1-chart-card">
-      <div class="s1-chart-lbl">週足チャート（${chartPeriod}）　売買高</div>
+      <div class="s1-chart-lbl">週足チャート（${chartPeriod}）</div>
       <canvas id="${chartId}" class="s1-chart-canvas" data-chart="${esc(chartLines.join(';'))}"></canvas>
     </div>
   </div>
